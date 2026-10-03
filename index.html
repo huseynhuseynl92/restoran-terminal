@@ -2,6 +2,9 @@
 <html lang="az">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1582,8 +1585,11 @@
         <div class="brand">
             <div class="brand-logo">🍽️</div>
             <div class="brand-text">
-                <h1 id="restaurantName">BAKU LOUNGE POS</h1>
-                <p><span class="live-dot"></span> Ofisiant & Kassa Terminalı</p>
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <h1 id="restaurantName" style="font-size:14px; font-weight:800;">BAKU LOUNGE POS</h1>
+                    <span style="background:rgba(16, 185, 129, 0.2); border:1px solid #10b981; color:#34d399; font-size:10px; font-weight:800; padding:1px 6px; border-radius:6px; letter-spacing:0.3px;">v3.2 CANLI</span>
+                </div>
+                <p><span class="live-dot"></span> Ofisiant & Kassa (Avto-Sinxron ⚡)</p>
             </div>
         </div>
 
@@ -1876,8 +1882,9 @@
                 const found = allWaiters.find(w => w.id === savedId);
                 if (found && !found.hasPassword) {
                     setLoggedWaiter(found);
-                } else if (!savedId && allWaiters.length === 1 && !allWaiters[0].hasPassword) {
-                    setLoggedWaiter(allWaiters[0]);
+                } else {
+                    const defaultOfi = allWaiters.find(w => w.role === 'Ofisiant' && !w.hasPassword) || allWaiters[0];
+                    if (defaultOfi) setLoggedWaiter(defaultOfi);
                 }
             }
         }
@@ -2423,7 +2430,18 @@
             });
         }
 
-        // CART LOGIC
+        // CART LOGIC & AUTO-SYNC
+        let autoSyncTimer = null;
+        function triggerAutoSyncToPc() {
+            if (autoSyncTimer) clearTimeout(autoSyncTimer);
+            autoSyncTimer = setTimeout(async () => {
+                const itemsCount = Object.keys(currentCart).length;
+                if (itemsCount > 0 && selectedTable) {
+                    await sendOrderToKitchen(true);
+                }
+            }, 1000); // 1 saniyə toxunulmadıqda avtomatik PC-yə ötürür
+        }
+
         function addToCart(productId, delta) {
             const prod = allProducts.find(p => p.id === productId);
             if (!prod) return;
@@ -2452,6 +2470,9 @@
             updateBottomCartBar();
             updateTopCartButton();
             renderCartSheet();
+
+            // Avtomatik olaraq PC Kassaya göndər (ofisiant heç nə basmasa belə)
+            triggerAutoSyncToPc();
         }
 
         function removeNewCartItem(productId) {
@@ -2720,23 +2741,25 @@
         }
 
         // SEND ORDER TO KITCHEN
-        async function sendOrderToKitchen() {
+        async function sendOrderToKitchen(isAuto = false) {
+            if (autoSyncTimer) {
+                clearTimeout(autoSyncTimer);
+                autoSyncTimer = null;
+            }
             if (!selectedTable) return;
             const items = Object.values(currentCart);
 
             if (items.length === 0) {
-                showToast('Mətbəxə göndərmək üçün yeni təam seçin!', 'warning');
+                if (!isAuto) showToast('Mətbəxə göndərmək üçün yeni təam seçin!', 'warning');
                 return;
             }
 
             if (!currentWaiter) {
-                showToast('Zəhmət olmasa ofisiant profilini seçin!', 'warning');
-                openWaiterModal();
-                return;
+                checkAutoLoginWaiter();
             }
 
             const sendBtn = document.getElementById('btnSendKitchen');
-            if (sendBtn) {
+            if (sendBtn && !isAuto) {
                 sendBtn.disabled = true;
                 sendBtn.style.opacity = '0.6';
                 sendBtn.innerHTML = '<span>⏳ Mətbəxə və Kassaya ötürülür...</span>';
@@ -2812,11 +2835,24 @@
             } catch (e) { }
 
             if (sentSuccess) {
-                showToast(`Sifariş göndərildi! 🎉 (${selectedTable.name} — ${items.length} təam)`, 'success');
+                const totalItemCount = items.reduce((s, it) => s + it.quantity, 0);
+                showToast(isAuto ? `⚡ ${totalItemCount} təam PC Kassaya göndərildi! (${selectedTable.name})` : `Sifariş göndərildi! 🎉 (${selectedTable.name} — ${items.length} təam)`, 'success');
                 currentCart = {};
-                closeCartSheet();
-                showTablesView();
+                if (!isAuto) {
+                    closeCartSheet();
+                    showTablesView();
+                } else {
+                    renderProducts();
+                    updateBottomCartBar();
+                    updateTopCartButton();
+                    if (document.getElementById('cartModalOverlay') && document.getElementById('cartModalOverlay').classList.contains('active')) {
+                        renderCartSheet();
+                    }
+                }
                 await loadTables();
+                if (selectedTable) {
+                    await refreshTableCart(selectedTable.id);
+                }
             } else if (!sb) {
                 showToast('Sifariş göndərilərkən xəta baş verdi', 'error');
             }
