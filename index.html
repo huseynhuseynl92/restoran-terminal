@@ -2027,12 +2027,21 @@
                             const { data: actOrders } = await sb.from('orders')
                                 .select('table_id, items, status')
                                 .eq('order_type', 'TableOrder')
-                                .neq('status', 'Paid');
+                                .neq('status', 'Paid')
+                                .neq('status', 'Cancelled')
+                                .neq('status', 'Deleted');
 
                             if (actOrders && actOrders.length > 0) {
+                                // Yalnız hazırda aktiv (Məşğul / Hesab istənmiş) və məbləği 0-dan böyük olan masaların sifarişləri hesablansın
+                                const activeTableIds = new Set(
+                                    regularTables
+                                        .filter(t => (t.status === 'Occupied' || t.status === 'Billed' || t.status === 'BillRequested') && Number(t.current_total) > 0)
+                                        .map(t => t.id)
+                                );
+
                                 actOrders.forEach(ord => {
                                     const tid = ord.table_id;
-                                    if (!tid) return;
+                                    if (!tid || !activeTableIds.has(tid)) return; // Boş masanın köhnə / silinmiş sifarişlərini sayma!
                                     if (!tableStats[tid]) tableStats[tid] = { readyCount: 0, prepCount: 0, totalItems: 0 };
                                     if (Array.isArray(ord.items)) {
                                         ord.items.forEach(it => {
@@ -2049,17 +2058,20 @@
                             }
                         } catch { }
 
-                        allTables = regularTables.map(t => ({
-                            id: t.id,
-                            name: t.name,
-                            area: t.area || 'Əsas Zal',
-                            status: t.status || 'Empty',
-                            currentTotal: Number(t.current_total) || 0,
-                            openedAt: t.opened_at || null,
-                            itemsCount: (tableStats[t.id] && tableStats[t.id].totalItems) || 0,
-                            readyCount: (tableStats[t.id] && tableStats[t.id].readyCount) || 0,
-                            prepCount: (tableStats[t.id] && tableStats[t.id].prepCount) || 0
-                        }));
+                        allTables = regularTables.map(t => {
+                            const isBusy = (t.status === 'Occupied' || t.status === 'Billed' || t.status === 'BillRequested') && Number(t.current_total) > 0;
+                            return {
+                                id: t.id,
+                                name: t.name,
+                                area: t.area || 'Əsas Zal',
+                                status: isBusy ? (t.status || 'Occupied') : 'Empty',
+                                currentTotal: isBusy ? (Number(t.current_total) || 0) : 0,
+                                openedAt: isBusy ? (t.opened_at || null) : null,
+                                itemsCount: isBusy ? ((tableStats[t.id] && tableStats[t.id].totalItems) || 0) : 0,
+                                readyCount: isBusy ? ((tableStats[t.id] && tableStats[t.id].readyCount) || 0) : 0,
+                                prepCount: isBusy ? ((tableStats[t.id] && tableStats[t.id].prepCount) || 0) : 0
+                            };
+                        });
                         renderTables();
                         return;
                     }
@@ -2116,13 +2128,26 @@
 
         async function refreshTableCart(tableId) {
             if (!tableId) return;
+
+            // Əgər seçilmiş masa boşdursa, səbətdə heç bir köhnə sifariş göstərilməsin
+            if (selectedTable && (selectedTable.status === 'Empty' || Number(selectedTable.currentTotal) === 0)) {
+                existingTableCart = null;
+                updateTopCartButton();
+                if (document.getElementById('cartModalOverlay') && document.getElementById('cartModalOverlay').classList.contains('active')) {
+                    renderCartSheet();
+                }
+                return;
+            }
+
             if (isCloud && sb) {
                 try {
                     const { data: activeOrders, error } = await sb.from('orders')
                         .select('*')
                         .eq('order_type', 'TableOrder')
                         .eq('table_id', tableId)
-                        .neq('status', 'Paid');
+                        .neq('status', 'Paid')
+                        .neq('status', 'Cancelled')
+                        .neq('status', 'Deleted');
 
                     if (activeOrders && activeOrders.length > 0) {
                         let combinedItems = [];
