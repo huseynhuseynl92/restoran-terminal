@@ -1,0 +1,2961 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Mobil Ofisiant Terminalı | Baku Lounge</title>
+    <style>
+        :root {
+            --bg-main: #090d16;
+            --bg-card: #131b2e;
+            --bg-card-subtle: #1c2742;
+            --border: #233152;
+            --border-light: #334673;
+            --text-main: #ffffff;
+            --text-muted: #94a3b8;
+            --text-dim: #64748b;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --success: #10b981;
+            --success-hover: #059669;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gold: #fbbf24;
+            --sky: #38bdf8;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* TOP HEADER */
+        header {
+            background: rgba(19, 27, 46, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 100;
+            flex-shrink: 0;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .brand-logo {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 16px;
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+        }
+
+        .brand-text h1 {
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            line-height: 1.2;
+        }
+
+        .brand-text p {
+            font-size: 10px;
+            color: var(--success);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .live-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--success);
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 8px var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.6; transform: scale(0.9); }
+            50% { opacity: 1; transform: scale(1.15); }
+            100% { opacity: 0.6; transform: scale(0.9); }
+        }
+
+        .user-badge {
+            background: var(--bg-card-subtle);
+            border: 1px solid var(--border);
+            padding: 5px 10px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .user-badge:active {
+            transform: scale(0.96);
+            background: var(--border);
+        }
+
+        .user-avatar {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        /* MAIN CONTAINER & VIEWS */
+        main {
+            flex: 1;
+            overflow-y: auto;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .view {
+            display: none;
+            flex-direction: column;
+            height: 100%;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        .view.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* PILL FILTERS */
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            padding: 10px 14px;
+            overflow-x: auto;
+            white-space: nowrap;
+            scrollbar-width: none;
+            flex-shrink: 0;
+            background: var(--bg-main);
+        }
+
+        .filter-bar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .filter-pill {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 7px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-pill.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+        }
+
+        /* TABLES GRID */
+        .tables-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            padding: 8px 14px 80px 14px;
+            overflow-y: auto;
+        }
+
+        @media (min-width: 480px) {
+            .tables-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .table-card {
+            background: var(--bg-card);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 14px 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 110px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .table-card:active {
+            transform: scale(0.97);
+        }
+
+        .table-card.empty {
+            border-color: #1e3a2f;
+            background: linear-gradient(180deg, #131b2e 0%, #0d1e17 100%);
+        }
+
+        .table-card.occupied {
+            border-color: #b45309;
+            background: linear-gradient(180deg, #131b2e 0%, #261b0d 100%);
+        }
+
+        .table-card.bill-requested {
+            border-color: #0369a1;
+            background: linear-gradient(180deg, #131b2e 0%, #0d1e2e 100%);
+        }
+
+        .table-card.has-res {
+            border-color: var(--gold);
+        }
+
+        .res-ribbon {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: var(--gold);
+            color: #000;
+            font-size: 9px;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-bottom-left-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .table-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .table-name {
+            font-size: 18px;
+            font-weight: 800;
+            color: #fff;
+            line-height: 1;
+        }
+
+        .table-area {
+            font-size: 11px;
+            color: var(--text-dim);
+            margin-top: 2px;
+        }
+
+        .table-status-tag {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 6px;
+            border-radius: 6px;
+            text-transform: uppercase;
+        }
+
+        .tag-empty {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .tag-occupied {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .tag-bill {
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--sky);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+
+        .table-bottom {
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .table-amount {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--gold);
+        }
+
+        .table-meta {
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        /* MENU VIEW */
+        .menu-header-bar {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .back-btn {
+            background: var(--bg-card-subtle);
+            border: 1px solid var(--border);
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .back-btn:active {
+            background: var(--border);
+        }
+
+        .menu-table-title {
+            text-align: center;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .menu-table-title h2 {
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--gold);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .menu-table-title p {
+            font-size: 10px;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .top-cart-btn {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border: 1.5px solid var(--border-light);
+            border-radius: 20px;
+            color: #fff;
+            padding: 5px 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .top-cart-btn:active {
+            transform: scale(0.95);
+            background: var(--bg-card-subtle);
+        }
+
+        .top-cart-btn.has-total {
+            border-color: var(--gold);
+            background: linear-gradient(135deg, #1e2738, #182238);
+            box-shadow: 0 0 10px rgba(251, 191, 36, 0.25);
+        }
+
+        .top-cart-icon {
+            font-size: 16px;
+        }
+
+        .top-cart-details {
+            display: flex;
+            flex-direction: column;
+            text-align: right;
+            line-height: 1.1;
+        }
+
+        .top-cart-title {
+            font-size: 9px;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .top-cart-amount {
+            font-size: 13px;
+            font-weight: 800;
+            color: var(--gold);
+        }
+
+        .top-cart-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--danger);
+            color: #fff;
+            font-size: 10px;
+            font-weight: 800;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 4px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid var(--bg-card);
+            box-shadow: 0 2px 5px rgba(239, 68, 68, 0.6);
+        }
+
+        .search-box {
+            padding: 8px 14px 4px 14px;
+            background: var(--bg-main);
+            flex-shrink: 0;
+        }
+
+        .search-input-wrap {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            padding: 6px 12px;
+            gap: 8px;
+        }
+
+        .search-input-wrap input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #fff;
+            font-size: 13px;
+            width: 100%;
+        }
+
+        .search-input-wrap input::placeholder {
+            color: var(--text-dim);
+        }
+
+        /* PRODUCTS LIST */
+        .products-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 14px 80px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .product-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            transition: all 0.15s;
+        }
+
+        .product-card:active {
+            border-color: var(--border-light);
+        }
+
+        .product-card.has-in-cart {
+            border-color: rgba(59, 130, 246, 0.5);
+            background: linear-gradient(90deg, #131b2e 0%, #16243d 100%);
+        }
+
+        .product-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .product-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .product-category-tag {
+            font-size: 11px;
+            color: var(--text-dim);
+            margin-top: 2px;
+        }
+
+        .product-price {
+            font-size: 15px;
+            font-weight: 800;
+            color: var(--gold);
+            margin-top: 3px;
+        }
+
+        .stepper {
+            display: flex;
+            align-items: center;
+            background: var(--bg-card-subtle);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .step-btn {
+            width: 34px;
+            height: 34px;
+            border: none;
+            background: transparent;
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .step-btn:active {
+            background: var(--primary);
+        }
+
+        .step-val {
+            min-width: 26px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .btn-add-initial {
+            background: var(--primary);
+            border: none;
+            color: #fff;
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+            transition: all 0.15s;
+        }
+
+        .btn-add-initial:active {
+            transform: scale(0.95);
+            background: var(--primary-hover);
+        }
+
+        /* BOTTOM FLOATING BAR */
+        .bottom-cart-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(19, 27, 46, 0.95);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-top: 1px solid var(--border);
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 90;
+            box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.5);
+            transform: translateY(120%);
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .bottom-cart-bar.visible {
+            transform: translateY(0);
+        }
+
+        .cart-bar-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .cart-bar-count {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .cart-bar-total {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--gold);
+        }
+
+        .btn-view-cart {
+            background: linear-gradient(135deg, #10b981, #059669);
+            border: none;
+            color: #fff;
+            padding: 10px 18px;
+            border-radius: 24px;
+            font-size: 13px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+            transition: all 0.2s;
+        }
+
+        .btn-view-cart:active {
+            transform: scale(0.96);
+        }
+
+        /* MODALS & BOTTOM SHEETS */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(2, 6, 23, 0.8);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            z-index: 200;
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+            animation: fadeIn 0.2s;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .bottom-sheet {
+            background: var(--bg-card);
+            border-top: 1px solid var(--border);
+            border-top-left-radius: var(--radius-lg);
+            border-top-right-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 540px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow);
+            animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        .sheet-header {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .sheet-header h3 {
+            font-size: 16px;
+            font-weight: 800;
+        }
+
+        .btn-close-sheet {
+            background: var(--bg-card-subtle);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .sheet-body {
+            padding: 14px 18px;
+            overflow-y: auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .cart-section-box {
+            background: var(--bg-card-subtle);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .cart-section-box.new-orders-box {
+            border-color: rgba(16, 185, 129, 0.35);
+            background: linear-gradient(180deg, rgba(16, 185, 129, 0.05) 0%, rgba(19, 27, 46, 0.6) 100%);
+        }
+
+        .cart-section-box.kitchen-orders-box {
+            border-color: rgba(245, 158, 11, 0.35);
+            background: linear-gradient(180deg, rgba(245, 158, 11, 0.05) 0%, rgba(19, 27, 46, 0.6) 100%);
+        }
+
+        .cart-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+        }
+
+        .cart-section-title {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .cart-section-title.green {
+            color: var(--success);
+        }
+
+        .cart-section-title.gold {
+            color: var(--gold);
+        }
+
+        .section-count-badge {
+            font-size: 11px;
+            font-weight: 800;
+            padding: 1px 7px;
+            border-radius: 10px;
+        }
+
+        .section-count-badge.green {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+
+        .section-count-badge.gold {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--gold);
+            border: 1px solid rgba(245, 158, 11, 0.4);
+        }
+
+        .btn-clear-new {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-clear-new:active {
+            background: var(--danger);
+            color: #fff;
+        }
+
+        .cart-item-row {
+            background: var(--bg-main);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .cart-item-main {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .cart-item-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .cart-item-price {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .cart-item-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-del-item {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            color: var(--danger);
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+
+        .btn-del-item:active {
+            background: var(--danger);
+            color: #fff;
+            transform: scale(0.92);
+        }
+
+        .cart-item-note-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 5px 8px;
+        }
+
+        .cart-item-note-wrap input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #fff;
+            font-size: 11px;
+            width: 100%;
+        }
+
+        .cart-item-note-wrap input::placeholder {
+            color: var(--text-dim);
+        }
+
+        .empty-new-notice {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px dashed var(--border);
+            border-radius: var(--radius-sm);
+            padding: 12px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        /* SENT ITEMS IN KITCHEN (LOCKED) */
+        .sent-items-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .sent-item-row {
+            background: rgba(10, 15, 26, 0.85);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 8px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .sent-item-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .sent-item-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sent-item-sub {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: var(--text-dim);
+            margin-top: 2px;
+        }
+
+        .sent-item-note {
+            color: #93c5fd;
+            font-style: italic;
+        }
+
+        .sent-item-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 3px;
+            flex-shrink: 0;
+        }
+
+        .sent-item-amount {
+            font-size: 13px;
+            font-weight: 800;
+            color: var(--gold);
+        }
+
+        .badge-kitchen-pill {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--gold);
+            border: 1px solid rgba(245, 158, 11, 0.35);
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+
+        .cashier-lock-notice {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.9));
+            border: 1px solid #3b82f6;
+            border-radius: var(--radius-sm);
+            padding: 9px 11px;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .cashier-lock-notice .lock-notice-icon {
+            font-size: 18px;
+            line-height: 1;
+        }
+
+        .cashier-lock-notice .lock-notice-text {
+            font-size: 11px;
+            line-height: 1.35;
+            color: #cbd5e1;
+        }
+
+        .cashier-lock-notice .lock-notice-text strong {
+            color: #60a5fa;
+            display: block;
+            margin-bottom: 2px;
+            font-size: 11px;
+        }
+
+        .cart-summary-box {
+            background: var(--bg-main);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 4px;
+        }
+
+        .summary-line {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .summary-line.grand {
+            border-top: 1px solid var(--border);
+            padding-top: 6px;
+            font-size: 15px;
+            font-weight: 800;
+            color: #fff;
+        }
+
+        .summary-line.grand span:last-child {
+            color: var(--gold);
+            font-size: 18px;
+        }
+
+        .sheet-footer {
+            padding: 12px 18px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .btn-send-kitchen {
+            background: linear-gradient(135deg, #10b981, #059669);
+            border: none;
+            color: #fff;
+            padding: 14px;
+            border-radius: var(--radius-md);
+            font-size: 15px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+            transition: all 0.2s;
+        }
+
+        .btn-send-kitchen:active {
+            transform: scale(0.98);
+        }
+
+        .btn-continue-ordering {
+            background: var(--bg-card-subtle);
+            border: 1px solid var(--border);
+            color: #fff;
+            padding: 11px;
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-continue-ordering:active {
+            background: var(--border);
+        }
+
+        .btn-request-bill {
+            background: transparent;
+            border: 1px solid var(--sky);
+            color: var(--sky);
+            padding: 10px;
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+
+        .btn-request-bill:active {
+            background: rgba(56, 189, 248, 0.1);
+        }
+
+        /* WAITER SELECTION / LOGIN MODAL */
+        .waiter-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            padding: 10px 0;
+        }
+
+        .waiter-card {
+            background: var(--bg-main);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .waiter-card:active {
+            transform: scale(0.96);
+            border-color: var(--primary);
+        }
+
+        .waiter-card-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 800;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+        }
+
+        .waiter-card-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .waiter-card-role {
+            font-size: 10px;
+            color: var(--text-dim);
+        }
+
+        /* PIN PAD */
+        .pin-display {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .pin-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid var(--border-light);
+            transition: all 0.2s;
+        }
+
+        .pin-dot.filled {
+            background: var(--primary);
+            border-color: var(--primary);
+            box-shadow: 0 0 8px var(--primary);
+        }
+
+        .keypad-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            max-width: 280px;
+            margin: 0 auto;
+        }
+
+        .key-btn {
+            background: var(--bg-card-subtle);
+            border: 1px solid var(--border);
+            color: #fff;
+            font-size: 20px;
+            font-weight: 700;
+            height: 52px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.1s;
+        }
+
+        .key-btn:active {
+            transform: scale(0.92);
+            background: var(--primary);
+        }
+
+        /* TOAST NOTIFICATION */
+        .toast {
+            position: fixed;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: #1e293b;
+            color: #fff;
+            padding: 10px 18px;
+            border-radius: 24px;
+            font-size: 13px;
+            font-weight: 700;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+            border: 1px solid var(--border);
+            z-index: 300;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            max-width: 90%;
+            text-align: center;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast.success {
+            background: #064e3b;
+            border-color: #059669;
+            color: #ecfdf5;
+        }
+
+        .toast.error {
+            background: #7f1d1d;
+            border-color: #dc2626;
+            color: #fef2f2;
+        }
+
+        /* EMPTY STATE */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            text-align: center;
+            color: var(--text-dim);
+            gap: 8px;
+        }
+
+        .empty-icon {
+            font-size: 36px;
+            margin-bottom: 4px;
+        }
+
+        /* TOP MODE TABS */
+        .top-nav-bar {
+            display: flex;
+            background: rgba(19, 27, 46, 0.95);
+            border-bottom: 1px solid var(--border);
+            padding: 6px 12px;
+            gap: 8px;
+            flex-shrink: 0;
+            z-index: 95;
+        }
+
+        .nav-tab {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: var(--radius-sm);
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .nav-tab.active {
+            background: var(--bg-card-subtle);
+            border-color: var(--primary);
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+        }
+
+        .courier-badge {
+            background: #ef4444;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 800;
+            padding: 2px 7px;
+            border-radius: 12px;
+        }
+
+        /* COURIER VIEW */
+        .courier-controls {
+            padding: 12px 14px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .courier-select-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .courier-select {
+            flex: 1;
+            background: var(--bg-main);
+            color: #fff;
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-sm);
+            padding: 9px 12px;
+            font-size: 13px;
+            font-weight: 600;
+            outline: none;
+        }
+
+        .btn-refresh-courier {
+            background: var(--bg-card-subtle);
+            border: 1px solid var(--border);
+            color: #fff;
+            padding: 9px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .btn-refresh-courier:active {
+            background: var(--primary);
+        }
+
+        .quick-confirm-bar {
+            display: flex;
+            gap: 8px;
+        }
+
+        .quick-confirm-bar input {
+            flex: 1;
+            background: var(--bg-main);
+            color: #fff;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 9px 12px;
+            font-size: 13px;
+            outline: none;
+        }
+
+        .quick-confirm-bar input:focus {
+            border-color: var(--primary);
+        }
+
+        .btn-quick-confirm {
+            background: linear-gradient(135deg, #10b981, #059669);
+            border: none;
+            color: #fff;
+            padding: 9px 16px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 800;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .btn-quick-confirm:active {
+            transform: scale(0.97);
+        }
+
+        .deliveries-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            padding: 14px 14px 60px 14px;
+            overflow-y: auto;
+        }
+
+        .delivery-card {
+            background: var(--bg-card);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: var(--shadow);
+            position: relative;
+        }
+
+        .delivery-card.delivered {
+            opacity: 0.75;
+            border-color: var(--success);
+        }
+
+        .delivery-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
+            gap: 8px;
+        }
+
+        .delivery-code-pill {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: #fff;
+            font-size: 13px;
+            font-weight: 900;
+            padding: 4px 10px;
+            border-radius: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        .delivery-receipt-text {
+            font-size: 11px;
+            color: var(--text-dim);
+            font-family: monospace;
+        }
+
+        .delivery-status-tag {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 6px;
+        }
+
+        .delivery-status-tag.on-the-way {
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--sky);
+            border: 1px solid rgba(56, 189, 248, 0.4);
+        }
+
+        .delivery-status-tag.completed {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+
+        .delivery-info-section {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 13px;
+        }
+
+        .delivery-info-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            line-height: 1.35;
+        }
+
+        .delivery-info-row .info-icon {
+            font-size: 14px;
+            color: var(--text-dim);
+            margin-top: 2px;
+            width: 18px;
+            flex-shrink: 0;
+            text-align: center;
+        }
+
+        .delivery-phone-link {
+            color: #38bdf8;
+            text-decoration: none;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(56, 189, 248, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .delivery-items-box {
+            background: var(--bg-main);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 10px;
+            margin-top: 4px;
+        }
+
+        .delivery-items-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .delivery-item-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            padding: 3px 0;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+        }
+
+        .delivery-item-row:last-child {
+            border-bottom: none;
+        }
+
+        .delivery-total-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 6px;
+            padding-top: 6px;
+            border-top: 1px solid var(--border);
+            font-weight: 800;
+            font-size: 14px;
+        }
+
+        .btn-complete-delivery {
+            background: linear-gradient(135deg, #10b981, #059669);
+            border: none;
+            color: #fff;
+            padding: 12px;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+            transition: all 0.15s;
+        }
+
+        .btn-complete-delivery:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TOP HEADER -->
+    <header>
+        <div class="brand">
+            <div class="brand-logo">B</div>
+            <div class="brand-text">
+                <h1 id="restaurantName">BAKU LOUNGE POS</h1>
+                <p><span class="live-dot"></span> Canlı Wi-Fi Terminal</p>
+            </div>
+        </div>
+
+        <div class="user-badge" id="userBadgeBtn" onclick="openWaiterModal()">
+            <div class="user-avatar" id="userAvatarText">?</div>
+            <span id="userNameText">Giriş edin</span>
+            <span style="font-size: 10px; color: var(--text-dim)">▼</span>
+        </div>
+    </header>
+
+    <!-- TOP NAVIGATION TABS (OFİSİANT vs KURYER) -->
+    <div class="top-nav-bar">
+        <button class="nav-tab active" id="tabOfisiant" onclick="switchMainTab('ofisiant')">
+            <span>🍽️ Ofisiant (Zal Masaları)</span>
+        </button>
+        <button class="nav-tab" id="tabCourier" onclick="switchMainTab('courier')">
+            <span>🛵 Kuryer Paneli</span>
+            <span class="courier-badge" id="activeDeliveriesBadge" style="display:none;">0</span>
+        </button>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast" class="toast">Bildiriş</div>
+
+    <!-- MAIN VIEW CONTAINER -->
+    <main>
+
+        <!-- VIEW 1: TABLES VIEW -->
+        <div id="tablesView" class="view active">
+            <!-- Area filter tabs -->
+            <div class="filter-bar" id="areaFilterBar">
+                <div class="filter-pill active" onclick="setAreaFilter('Hamısı')">Hamısı</div>
+                <div class="filter-pill" onclick="setAreaFilter('Əsas Zal')">Əsas Zal</div>
+                <div class="filter-pill" onclick="setAreaFilter('Terras')">Terras</div>
+                <div class="filter-pill" onclick="setAreaFilter('VIP')">VIP</div>
+            </div>
+
+            <!-- Tables Grid -->
+            <div class="tables-grid" id="tablesGrid">
+                <!-- Injected via JavaScript -->
+            </div>
+        </div>
+
+        <!-- VIEW 2: MENU & ORDERING VIEW -->
+        <div id="menuView" class="view">
+            <!-- Table Header -->
+            <div class="menu-header-bar">
+                <button class="back-btn" onclick="showTablesView()">
+                    <span>←</span> Masalar
+                </button>
+                <div class="menu-table-title">
+                    <h2 id="currentTableTitle">Masa: --</h2>
+                    <p id="currentTableArea">Zal: --</p>
+                </div>
+                <button class="top-cart-btn" id="topCartBtn" onclick="openCartSheet()" title="Səbət və Masa Hesabı">
+                    <span class="top-cart-icon">🛒</span>
+                    <div class="top-cart-details">
+                        <span class="top-cart-title">Səbət</span>
+                        <span id="topCartAmount" class="top-cart-amount">0.00 ₼</span>
+                    </div>
+                    <span id="topCartBadge" class="top-cart-badge" style="display:none;">0</span>
+                </button>
+            </div>
+
+            <!-- Search box -->
+            <div class="search-box">
+                <div class="search-input-wrap">
+                    <span>🔍</span>
+                    <input type="text" id="searchInput" placeholder="Təam adı və ya kateqoriya ilə axtar..." oninput="onSearchChanged()">
+                </div>
+            </div>
+
+            <!-- Category filter bar -->
+            <div class="filter-bar" id="categoryFilterBar">
+                <!-- Injected via JavaScript -->
+            </div>
+
+            <!-- Products List -->
+            <div class="products-container" id="productsContainer">
+                <!-- Injected via JavaScript -->
+            </div>
+        </div>
+
+        <!-- VIEW 3: COURIER DELIVERY VIEW -->
+        <div id="courierView" class="view">
+            <!-- Filter & Quick confirm -->
+            <div class="courier-controls">
+                <div class="courier-select-row">
+                    <select id="courierSelect" class="courier-select" onchange="onCourierFilterChange()">
+                        <option value="">🛵 Bütün Kuryerlər</option>
+                    </select>
+                    <button class="btn-refresh-courier" onclick="loadDeliveries()">🔄 Yenilə</button>
+                </div>
+                <div class="quick-confirm-bar">
+                    <input type="text" id="quickCodeInput" placeholder="Sifariş kodu (məs: 8492) və ya Çek №..." onkeydown="if(event.key==='Enter') quickConfirmDelivery()" />
+                    <button class="btn-quick-confirm" onclick="quickConfirmDelivery()">✅ Təsdiqlə</button>
+                </div>
+            </div>
+
+            <!-- Deliveries list -->
+            <div class="deliveries-grid" id="deliveriesGrid">
+                <!-- Injected via JavaScript -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- BOTTOM FLOATING CART BAR -->
+    <div class="bottom-cart-bar" id="bottomCartBar">
+        <div class="cart-bar-info">
+            <span class="cart-bar-count" id="cartBarCount">0 təam seçilib</span>
+            <span class="cart-bar-total" id="cartBarTotal">0.00 ₼</span>
+        </div>
+        <button class="btn-view-cart" onclick="openCartSheet()">
+            <span>🛒 Səbətə Bax</span>
+        </button>
+    </div>
+
+    <!-- CART BOTTOM SHEET MODAL -->
+    <div class="modal-overlay" id="cartModalOverlay" onclick="onModalBgClick(event, 'cartModalOverlay')">
+        <div class="bottom-sheet">
+            <div class="sheet-header">
+                <div>
+                    <h3 id="cartSheetTitle">Sifariş Səbəti</h3>
+                    <p id="cartSheetSubtitle" style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">Mətbəxə ötürüləcək yeni sifariş</p>
+                </div>
+                <button class="btn-close-sheet" onclick="closeCartSheet()">✕</button>
+            </div>
+
+            <div class="sheet-body" id="cartSheetBody">
+                <!-- Cart items or previous items -->
+            </div>
+
+            <div class="sheet-footer" id="cartSheetFooter">
+                <button class="btn-send-kitchen" id="btnSendKitchen" onclick="sendOrderToKitchen()">
+                    <span>🧑‍🍳 Mətbəxə Göndər</span>
+                    <span id="sendKitchenBtnTotal">(0.00 ₼)</span>
+                </button>
+                <button class="btn-request-bill" onclick="requestTableBill()">
+                    <span>🧾 Hesab Tələb Et (Pre-bill)</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- WAITER SELECTION MODAL -->
+    <div class="modal-overlay" id="waiterModalOverlay" onclick="onModalBgClick(event, 'waiterModalOverlay')">
+        <div class="bottom-sheet" style="max-height: 80vh;">
+            <div class="sheet-header">
+                <h3>Ofisiant Seçimi</h3>
+                <button class="btn-close-sheet" onclick="closeWaiterModal()">✕</button>
+            </div>
+            <div class="sheet-body">
+                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">
+                    Sifarişlərin adınıza qeydə alınması üçün zəhmət olmasa profilinizi seçin:
+                </p>
+                <div class="waiter-grid" id="waiterGrid">
+                    <!-- Waiters injected via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PIN ENTRY MODAL -->
+    <div class="modal-overlay" id="pinModalOverlay">
+        <div class="bottom-sheet" style="max-height: 85vh;">
+            <div class="sheet-header">
+                <h3 id="pinModalTitle">PİN Kodu Daxil Edin</h3>
+                <button class="btn-close-sheet" onclick="closePinModal()">✕</button>
+            </div>
+            <div class="sheet-body" style="align-items: center;">
+                <p id="pinModalSubtitle" style="font-size: 12px; color: var(--text-muted);">Ofisiantın təhlükəsizlik parolu:</p>
+                <div class="pin-display">
+                    <div class="pin-dot" id="dot1"></div>
+                    <div class="pin-dot" id="dot2"></div>
+                    <div class="pin-dot" id="dot3"></div>
+                    <div class="pin-dot" id="dot4"></div>
+                </div>
+
+                <div class="keypad-grid">
+                    <button class="key-btn" onclick="pressPin('1')">1</button>
+                    <button class="key-btn" onclick="pressPin('2')">2</button>
+                    <button class="key-btn" onclick="pressPin('3')">3</button>
+                    <button class="key-btn" onclick="pressPin('4')">4</button>
+                    <button class="key-btn" onclick="pressPin('5')">5</button>
+                    <button class="key-btn" onclick="pressPin('6')">6</button>
+                    <button class="key-btn" onclick="pressPin('7')">7</button>
+                    <button class="key-btn" onclick="pressPin('8')">8</button>
+                    <button class="key-btn" onclick="pressPin('9')">9</button>
+                    <button class="key-btn" style="color: var(--danger)" onclick="clearPin()">C</button>
+                    <button class="key-btn" onclick="pressPin('0')">0</button>
+                    <button class="key-btn" style="color: var(--success); font-size: 16px;" onclick="submitPin()">✓</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // APPLICATION STATE
+        let allTables = [];
+        let allCategories = [];
+        let allProducts = [];
+        let allWaiters = [];
+
+        // COURIER PORTAL STATE
+        let allDeliveries = [];
+        let allCouriersList = [];
+        let selectedCourierFilter = '';
+        let currentMainTab = 'ofisiant';
+
+        let currentArea = 'Hamısı';
+        let currentCategory = 'Hamısı';
+        let searchQuery = '';
+
+        let currentWaiter = null;
+        let selectedTable = null;
+        let currentCart = {}; // { productId: { product, quantity, notes } }
+        let existingTableCart = null; // Previously ordered items from DB
+
+        let pendingWaiterAuth = null;
+        let currentPinInput = '';
+
+        // INITIALIZATION
+        window.addEventListener('DOMContentLoaded', async () => {
+            loadSavedWaiter();
+            await fetchStatus();
+            await loadInitialData();
+            startPolling();
+        });
+
+        // TOAST
+        function showToast(msg, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = 'toast show ' + type;
+            setTimeout(() => {
+                toast.className = 'toast';
+            }, 3000);
+        }
+
+        // FETCH DATA
+        async function fetchStatus() {
+            try {
+                const res = await fetch('/api/status');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.restaurant) {
+                        document.getElementById('restaurantName').textContent = data.restaurant;
+                    }
+                }
+            } catch (e) {
+                console.error('Status fetch error', e);
+            }
+        }
+
+        async function loadInitialData() {
+            try {
+                await Promise.all([
+                    loadWaiters(),
+                    loadCategories(),
+                    loadProducts(),
+                    loadTables(),
+                    loadCouriers(),
+                    loadDeliveries()
+                ]);
+            } catch (e) {
+                showToast('Məlumatları yükləyərkən xəta baş verdi', 'error');
+            }
+        }
+
+        async function loadWaiters() {
+            try {
+                const res = await fetch('/api/waiters');
+                if (res.ok) {
+                    allWaiters = await res.json();
+                    renderWaiters();
+                    // Əgər heç bir ofisiant seçilməyibsə və 1 nəfər varsa avtomatik seç
+                    if (!currentWaiter && allWaiters.length > 0) {
+                        const savedId = localStorage.getItem('waiter_id');
+                        const found = allWaiters.find(w => w.id === savedId);
+                        if (found && !found.hasPassword) {
+                            setLoggedWaiter(found);
+                        } else if (!savedId && allWaiters.length === 1 && !allWaiters[0].hasPassword) {
+                            setLoggedWaiter(allWaiters[0]);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function loadCategories() {
+            try {
+                const res = await fetch('/api/categories');
+                if (res.ok) {
+                    allCategories = await res.json();
+                    renderCategoryPills();
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function loadProducts() {
+            try {
+                const res = await fetch('/api/products');
+                if (res.ok) {
+                    allProducts = await res.json();
+                    renderProducts();
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function loadTables() {
+            try {
+                const res = await fetch('/api/tables');
+                if (res.ok) {
+                    allTables = await res.json();
+                    renderTables();
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        // REAL-TIME POLLING (Every 3 seconds)
+        function startPolling() {
+            setInterval(async () => {
+                try {
+                    const res = await fetch('/api/tables');
+                    if (res.ok) {
+                        allTables = await res.json();
+                        renderTables();
+                    }
+
+                    // Əgər hazırda bir masa seçilibsə, onun səbətini də real vaxtda sinxronlaşdır
+                    if (selectedTable) {
+                        const cartRes = await fetch(`/api/table/${selectedTable.id}/cart`);
+                        if (cartRes.ok) {
+                            existingTableCart = await cartRes.json();
+                            updateTopCartButton();
+                            // Əgər səbət pəncərəsi açıqdırsa, yenilənmiş mətbəx təamlarını dərhal əks etdir
+                            if (document.getElementById('cartModalOverlay').classList.contains('active')) {
+                                renderCartSheet();
+                            }
+                        }
+                    }
+
+                    // Kuryer portalı üçün real vaxtda çatdırılmaları və bildiriş sayını yenilə
+                    if (currentMainTab === 'courier') {
+                        await loadDeliveries();
+                    } else {
+                        try {
+                            const dRes = await fetch('/api/deliveries');
+                            if (dRes.ok) {
+                                allDeliveries = await dRes.json();
+                                updateDeliveriesBadge();
+                            }
+                        } catch { }
+                    }
+                } catch (e) {
+                    // Ignore offline poll errors
+                }
+            }, 3000);
+        }
+
+        // WAITER AUTHENTICATION
+        function loadSavedWaiter() {
+            const savedJson = localStorage.getItem('active_waiter');
+            if (savedJson) {
+                try {
+                    currentWaiter = JSON.parse(savedJson);
+                    updateUserBadge();
+                } catch { }
+            }
+        }
+
+        function setLoggedWaiter(waiter) {
+            currentWaiter = waiter;
+            localStorage.setItem('active_waiter', JSON.stringify(waiter));
+            localStorage.setItem('waiter_id', waiter.id);
+            updateUserBadge();
+            closeWaiterModal();
+            closePinModal();
+            showToast(`Xoş gəldiniz, ${waiter.fullName}!`, 'success');
+        }
+
+        function updateUserBadge() {
+            const avatar = document.getElementById('userAvatarText');
+            const name = document.getElementById('userNameText');
+            if (currentWaiter) {
+                const parts = currentWaiter.fullName.split(' ');
+                avatar.textContent = parts.map(p => p[0]).join('').substring(0, 2).toUpperCase();
+                name.textContent = currentWaiter.fullName;
+            } else {
+                avatar.textContent = '?';
+                name.textContent = 'Giriş edin';
+            }
+        }
+
+        function openWaiterModal() {
+            renderWaiters();
+            document.getElementById('waiterModalOverlay').classList.add('active');
+        }
+
+        function closeWaiterModal() {
+            document.getElementById('waiterModalOverlay').classList.remove('active');
+        }
+
+        function renderWaiters() {
+            const grid = document.getElementById('waiterGrid');
+            grid.innerHTML = '';
+            allWaiters.forEach(w => {
+                const card = document.createElement('div');
+                card.className = 'waiter-card';
+                card.onclick = () => selectWaiter(w);
+
+                const initials = w.fullName.split(' ').map(p => p[0]).join('').substring(0, 2).toUpperCase();
+                card.innerHTML = `
+                    <div class="waiter-card-avatar">${initials}</div>
+                    <div class="waiter-card-name">${escapeHtml(w.fullName)}</div>
+                    <div class="waiter-card-role">${escapeHtml(w.role || 'Ofisiant')} ${w.hasPassword ? '🔒' : ''}</div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function selectWaiter(waiter) {
+            if (waiter.hasPassword) {
+                pendingWaiterAuth = waiter;
+                currentPinInput = '';
+                updatePinDots();
+                document.getElementById('pinModalTitle').textContent = `${waiter.fullName}`;
+                document.getElementById('pinModalOverlay').classList.add('active');
+            } else {
+                setLoggedWaiter(waiter);
+            }
+        }
+
+        function closePinModal() {
+            document.getElementById('pinModalOverlay').classList.remove('active');
+            pendingWaiterAuth = null;
+            currentPinInput = '';
+        }
+
+        function pressPin(num) {
+            if (currentPinInput.length < 8) {
+                currentPinInput += num;
+                updatePinDots();
+            }
+        }
+
+        function clearPin() {
+            currentPinInput = '';
+            updatePinDots();
+        }
+
+        function updatePinDots() {
+            for (let i = 1; i <= 4; i++) {
+                const dot = document.getElementById('dot' + i);
+                if (currentPinInput.length >= i) {
+                    dot.classList.add('filled');
+                } else {
+                    dot.classList.remove('filled');
+                }
+            }
+        }
+
+        async function submitPin() {
+            if (!pendingWaiterAuth) return;
+            try {
+                const res = await fetch('/api/waiters/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        waiterId: pendingWaiterAuth.id,
+                        password: currentPinInput
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    setLoggedWaiter(pendingWaiterAuth);
+                } else {
+                    showToast('PİN kod yanlışdır!', 'error');
+                    clearPin();
+                }
+            } catch (e) {
+                showToast('Giriş xətası', 'error');
+            }
+        }
+
+        // TABLES VIEW & RENDERING
+        function setAreaFilter(area) {
+            currentArea = area;
+            document.querySelectorAll('#areaFilterBar .filter-pill').forEach(pill => {
+                pill.classList.toggle('active', pill.textContent.trim() === area);
+            });
+            renderTables();
+        }
+
+        function renderTables() {
+            const grid = document.getElementById('tablesGrid');
+            grid.innerHTML = '';
+
+            const filtered = allTables.filter(t => {
+                if (currentArea === 'Hamısı') return true;
+                return t.area === currentArea;
+            });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1 / -1;">
+                        <div class="empty-icon">🍽️</div>
+                        <p>Bu zalda masa tapılmadı</p>
+                    </div>`;
+                return;
+            }
+
+            filtered.forEach(table => {
+                const card = document.createElement('div');
+                let statusClass = 'empty';
+                let tagClass = 'tag-empty';
+                let tagText = 'Boş';
+
+                if (table.status === 1 || table.status === 'Occupied') {
+                    statusClass = 'occupied';
+                    tagClass = 'tag-occupied';
+                    tagText = 'Məşğul';
+                } else if (table.status === 2 || table.status === 'BillRequested') {
+                    statusClass = 'bill-requested';
+                    tagClass = 'tag-bill';
+                    tagText = 'Hesab';
+                }
+
+                if (table.hasActiveReservation) {
+                    card.classList.add('has-res');
+                }
+
+                card.className = `table-card ${statusClass}`;
+                card.onclick = () => onTableClick(table);
+
+                let resRibbon = '';
+                if (table.hasActiveReservation && table.activeReservationInfo) {
+                    resRibbon = `<div class="res-ribbon">📅 ${escapeHtml(table.activeReservationInfo)}</div>`;
+                }
+
+                let bottomInfo = '';
+                if (statusClass === 'empty') {
+                    bottomInfo = `
+                        <div class="table-meta">Sifariş üçün toxunun</div>
+                        <div style="font-size: 14px; color: var(--success); font-weight: 700;">+ Aç</div>
+                    `;
+                } else {
+                    const dur = table.openDurationString || '';
+                    bottomInfo = `
+                        <div class="table-amount">${formatCurrency(table.currentTotal || 0)}</div>
+                        <div class="table-meta">${table.itemsCount || 0} təam • ${dur}</div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    ${resRibbon}
+                    <div class="table-top">
+                        <div>
+                            <div class="table-name">${escapeHtml(table.name)}</div>
+                            <div class="table-area">${escapeHtml(table.area || '')}</div>
+                        </div>
+                        <div class="table-status-tag ${tagClass}">${tagText}</div>
+                    </div>
+                    <div class="table-bottom">
+                        ${bottomInfo}
+                    </div>
+                `;
+
+                grid.appendChild(card);
+            });
+        }
+
+        async function onTableClick(table) {
+            if (!currentWaiter) {
+                showToast('Zəhmət olmasa əvvəlcə adınızı seçin!', 'warning');
+                openWaiterModal();
+                return;
+            }
+
+            selectedTable = table;
+            currentCart = {}; // Start new cart session for this table
+
+            // Masa başlığını yenilə
+            document.getElementById('currentTableTitle').textContent = `Masa: ${table.name}`;
+            document.getElementById('currentTableArea').textContent = `Zal: ${table.area}`;
+
+            // Load existing table cart from server
+            try {
+                const res = await fetch(`/api/table/${table.id}/cart`);
+                if (res.ok) {
+                    existingTableCart = await res.json();
+                } else {
+                    existingTableCart = null;
+                }
+            } catch {
+                existingTableCart = null;
+            }
+
+            showMenuView();
+            updateTopCartButton();
+
+            // Əgər masa məşğuldursa və ya əvvəlki sifarişləri varsa, birbaşa səbət və hesab pəncərəsini aç
+            const hasPrevOrders = existingTableCart && existingTableCart.items && existingTableCart.items.length > 0;
+            const isOccupied = table.status === 1 || table.status === 'Occupied' || table.status === 2 || table.status === 'BillRequested';
+            if (isOccupied || hasPrevOrders) {
+                openCartSheet();
+            }
+        }
+
+        // MENU VIEW & RENDERING
+        function showMenuView() {
+            document.getElementById('tablesView').classList.remove('active');
+            document.getElementById('menuView').classList.add('active');
+            renderCategoryPills();
+            renderProducts();
+            updateBottomCartBar();
+            updateTopCartButton();
+        }
+
+        function showTablesView() {
+            document.getElementById('menuView').classList.remove('active');
+            document.getElementById('tablesView').classList.add('active');
+            updateBottomCartBar();
+            loadTables(); // Refresh latest table states
+        }
+
+        function renderCategoryPills() {
+            const bar = document.getElementById('categoryFilterBar');
+            bar.innerHTML = '';
+
+            const allPill = document.createElement('div');
+            allPill.className = `filter-pill ${currentCategory === 'Hamısı' ? 'active' : ''}`;
+            allPill.textContent = 'Hamısı';
+            allPill.onclick = () => setCategoryFilter('Hamısı');
+            bar.appendChild(allPill);
+
+            allCategories.forEach(cat => {
+                const pill = document.createElement('div');
+                pill.className = `filter-pill ${currentCategory === cat.name ? 'active' : ''}`;
+                pill.textContent = cat.name;
+                pill.onclick = () => setCategoryFilter(cat.name);
+                bar.appendChild(pill);
+            });
+        }
+
+        function setCategoryFilter(catName) {
+            currentCategory = catName;
+            document.querySelectorAll('#categoryFilterBar .filter-pill').forEach(p => {
+                p.classList.toggle('active', p.textContent.trim() === catName);
+            });
+            renderProducts();
+        }
+
+        function onSearchChanged() {
+            searchQuery = document.getElementById('searchInput').value.trim().toLowerCase();
+            renderProducts();
+        }
+
+        function renderProducts() {
+            const container = document.getElementById('productsContainer');
+            container.innerHTML = '';
+
+            const filtered = allProducts.filter(p => {
+                const matchCategory = currentCategory === 'Hamısı' || p.categoryName === currentCategory;
+                const matchSearch = !searchQuery ||
+                    p.name.toLowerCase().includes(searchQuery) ||
+                    (p.categoryName && p.categoryName.toLowerCase().includes(searchQuery));
+                return matchCategory && matchSearch;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">🔍</div>
+                        <p>Uyğun təam tapılmadı</p>
+                    </div>`;
+                return;
+            }
+
+            filtered.forEach(prod => {
+                const card = document.createElement('div');
+                const inCartItem = currentCart[prod.id];
+                const qty = inCartItem ? inCartItem.quantity : 0;
+                const isStop = !!prod.isStopList;
+
+                card.className = `product-card ${qty > 0 ? 'has-in-cart' : ''} ${isStop ? 'is-stop-list' : ''}`;
+                if (isStop) {
+                    card.style.opacity = '0.65';
+                    card.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+                }
+
+                let controlsHtml = '';
+                if (isStop) {
+                    controlsHtml = `<span style="display:inline-block; padding:6px 12px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); color:#ef4444; font-size:11px; font-weight:800; border-radius:8px;">TÜKƏNİB</span>`;
+                } else if (qty === 0) {
+                    controlsHtml = `<button class="btn-add-initial" onclick="addToCart('${prod.id}', 1)">+ Əlavə et</button>`;
+                } else {
+                    controlsHtml = `
+                        <div class="stepper">
+                            <button class="step-btn" onclick="addToCart('${prod.id}', -1)">−</button>
+                            <span class="step-val">${qty}</span>
+                            <button class="step-btn" onclick="addToCart('${prod.id}', 1)">+</button>
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div class="product-info">
+                        <div class="product-name" style="display:flex; align-items:center; gap:6px;">
+                            ${escapeHtml(prod.name)}
+                            ${isStop ? '<span style="background:#dc2626; color:#fff; font-size:9px; font-weight:900; padding:1px 5px; border-radius:4px;">STOP</span>' : ''}
+                        </div>
+                        <div class="product-category-tag">${escapeHtml(prod.categoryName || '')}</div>
+                        <div class="product-price">${formatCurrency(prod.price)}</div>
+                    </div>
+                    <div>
+                        ${controlsHtml}
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        // CART LOGIC
+        function addToCart(productId, delta) {
+            const prod = allProducts.find(p => p.id === productId);
+            if (!prod) return;
+
+            if (prod.isStopList) {
+                showToast(`"${prod.name}" stop-list-dədir (tükənib)!`, 'error');
+                return;
+            }
+
+            if (!currentCart[productId]) {
+                if (delta > 0) {
+                    currentCart[productId] = {
+                        product: prod,
+                        quantity: delta,
+                        notes: ''
+                    };
+                }
+            } else {
+                currentCart[productId].quantity += delta;
+                if (currentCart[productId].quantity <= 0) {
+                    delete currentCart[productId];
+                }
+            }
+
+            renderProducts();
+            updateBottomCartBar();
+            updateTopCartButton();
+            renderCartSheet();
+        }
+
+        function removeNewCartItem(productId) {
+            if (currentCart[productId]) {
+                const name = currentCart[productId].product.name;
+                delete currentCart[productId];
+                renderProducts();
+                updateBottomCartBar();
+                updateTopCartButton();
+                renderCartSheet();
+                showToast(`"${name}" səbətdən silindi`, 'info');
+            }
+        }
+
+        function clearNewCart() {
+            if (Object.keys(currentCart).length === 0) return;
+            if (confirm('Bütün yeni seçilmiş təamlar səbətdən silinsin?')) {
+                currentCart = {};
+                renderProducts();
+                updateBottomCartBar();
+                updateTopCartButton();
+                renderCartSheet();
+                showToast('Yeni təamlar təmizləndi', 'info');
+            }
+        }
+
+        function updateCartItemNote(productId, note) {
+            if (currentCart[productId]) {
+                currentCart[productId].notes = note;
+            }
+        }
+
+        function updateTopCartButton() {
+            const btn = document.getElementById('topCartBtn');
+            if (!btn) return;
+
+            const newItems = Object.values(currentCart);
+            const newQty = newItems.reduce((sum, item) => sum + item.quantity, 0);
+            const newPrice = newItems.reduce((sum, item) => sum + (item.quantity * item.product.price), 0);
+
+            const existItems = (existingTableCart && existingTableCart.items) ? existingTableCart.items : [];
+            const existQty = existItems.reduce((sum, item) => sum + item.quantity, 0);
+            const existPrice = existingTableCart ? (existingTableCart.grandTotal || 0) : 0;
+
+            const totalQty = newQty + existQty;
+            const totalPrice = newPrice + existPrice;
+
+            const amount = document.getElementById('topCartAmount');
+            const badge = document.getElementById('topCartBadge');
+
+            if (amount) {
+                amount.textContent = formatCurrency(totalPrice);
+            }
+            if (badge) {
+                badge.textContent = totalQty;
+                badge.style.display = totalQty > 0 ? 'flex' : 'none';
+            }
+
+            if (totalPrice > 0) {
+                btn.classList.add('has-total');
+            } else {
+                btn.classList.remove('has-total');
+            }
+        }
+
+        function updateBottomCartBar() {
+            const bar = document.getElementById('bottomCartBar');
+            const items = Object.values(currentCart);
+            const totalQty = items.reduce((sum, item) => sum + item.quantity, 0);
+            const totalPrice = items.reduce((sum, item) => sum + (item.quantity * item.product.price), 0);
+
+            if (totalQty > 0 && document.getElementById('menuView').classList.contains('active')) {
+                document.getElementById('cartBarCount').textContent = `${totalQty} yeni təam seçilib`;
+                document.getElementById('cartBarTotal').textContent = formatCurrency(totalPrice);
+                bar.classList.add('visible');
+            } else {
+                bar.classList.remove('visible');
+            }
+            updateTopCartButton();
+        }
+
+        // CART SHEET
+        function openCartSheet() {
+            renderCartSheet();
+            document.getElementById('cartModalOverlay').classList.add('active');
+        }
+
+        function closeCartSheet() {
+            document.getElementById('cartModalOverlay').classList.remove('active');
+        }
+
+        function renderCartSheet() {
+            const body = document.getElementById('cartSheetBody');
+            body.innerHTML = '';
+
+            const newItems = Object.values(currentCart);
+            const newTotal = newItems.reduce((sum, i) => sum + (i.quantity * i.product.price), 0);
+
+            const existItems = (existingTableCart && existingTableCart.items) ? existingTableCart.items : [];
+            const existTotal = existingTableCart ? (existingTableCart.grandTotal || 0) : 0;
+            const grandTotal = existTotal + newTotal;
+
+            document.getElementById('cartSheetTitle').textContent = `${selectedTable?.name || 'Masa'} — Səbət & Hesab`;
+            document.getElementById('cartSheetSubtitle').textContent = `Zal: ${selectedTable?.area || ''} • Ofisiant: ${currentWaiter?.fullName || 'Təyin edilməyib'}`;
+
+            // BÖLMƏ 1: YENİ SİFARİŞLƏR (MƏTBƏXƏ GÖNDƏRİLMƏYİB - OFİSİANT REDAKTƏ EDƏ BİLƏR)
+            const newSection = document.createElement('div');
+            newSection.className = 'cart-section-box new-orders-box';
+
+            let newHeaderHtml = `
+                <div class="cart-section-header">
+                    <div class="cart-section-title green">
+                        <span>🚀 Yeni Sifarişlər (Göndərilməyib)</span>
+                        <span class="section-count-badge green">${newItems.length}</span>
+                    </div>
+                    ${newItems.length > 0 ? `<button class="btn-clear-new" onclick="clearNewCart()">🧹 Hamısını Təmizlə</button>` : ''}
+                </div>
+            `;
+            newSection.innerHTML = newHeaderHtml;
+
+            if (newItems.length > 0) {
+                const list = document.createElement('div');
+                list.style.display = 'flex';
+                list.style.flexDirection = 'column';
+                list.style.gap = '8px';
+
+                newItems.forEach(item => {
+                    const row = document.createElement('div');
+                    row.className = 'cart-item-row';
+                    const lineTotal = item.quantity * item.product.price;
+
+                    row.innerHTML = `
+                        <div class="cart-item-main">
+                            <div style="flex: 1; min-width: 0;">
+                                <div class="cart-item-title">${escapeHtml(item.product.name)}</div>
+                                <div class="cart-item-price">${formatCurrency(item.product.price)} × ${item.quantity} = <b style="color:var(--gold)">${formatCurrency(lineTotal)}</b></div>
+                            </div>
+                            <div class="cart-item-actions">
+                                <div class="stepper">
+                                    <button class="step-btn" onclick="addToCart('${item.product.id}', -1)" title="Azalt">−</button>
+                                    <span class="step-val">${item.quantity}</span>
+                                    <button class="step-btn" onclick="addToCart('${item.product.id}', 1)" title="Artır">+</button>
+                                </div>
+                                <button class="btn-del-item" onclick="removeNewCartItem('${item.product.id}')" title="Bu təamı sil">🗑️</button>
+                            </div>
+                        </div>
+                        <div class="cart-item-note-wrap">
+                            <span style="font-size: 11px;">✏️</span>
+                            <input type="text" class="cart-item-note-input"
+                                   placeholder="Aşpaza xüsusi qeyd (az duzlu, buzsuz və s.)..."
+                                   value="${escapeHtml(item.notes || '')}"
+                                   oninput="updateCartItemNote('${item.product.id}', this.value)">
+                        </div>
+                    `;
+                    list.appendChild(row);
+                });
+                newSection.appendChild(list);
+            } else {
+                newSection.innerHTML += `
+                    <div class="empty-new-notice">
+                        <span>💡 Hazırda səbətdə göndərilməmiş yeni təam yoxdur. Aşağıdakı "Yeni Təam Əlavə Et" düyməsi ilə menyudan seçim edin.</span>
+                    </div>
+                `;
+            }
+            body.appendChild(newSection);
+
+            // BÖLMƏ 2: MƏTBƏXDƏKİ SİFARİŞLƏR (ARTIQ GÖNDƏRİLİB - YALNIZ KASSİR SİLƏ BİLƏR)
+            if (existItems.length > 0) {
+                const existSection = document.createElement('div');
+                existSection.className = 'cart-section-box kitchen-orders-box';
+
+                existSection.innerHTML = `
+                    <div class="cart-section-header">
+                        <div class="cart-section-title gold">
+                            <span>🔒 Mətbəxdə Hazırlanan Sifarişlər</span>
+                            <span class="section-count-badge gold">${existItems.length}</span>
+                        </div>
+                        <span class="badge-kitchen-pill">🔒 Təsdiqlənib</span>
+                    </div>
+                    <div class="sent-items-list">
+                        ${existItems.map(prev => `
+                            <div class="sent-item-row">
+                                <div class="sent-item-info">
+                                    <div class="sent-item-title">${escapeHtml(prev.productName)}</div>
+                                    <div class="sent-item-sub">
+                                        <span>${formatCurrency(prev.unitPrice)} × ${prev.quantity}</span>
+                                        ${prev.notes ? `<span class="sent-item-note">📝 ${escapeHtml(prev.notes)}</span>` : ''}
+                                    </div>
+                                </div>
+                                <div class="sent-item-right">
+                                    <div class="sent-item-amount">${formatCurrency(prev.unitPrice * prev.quantity)}</div>
+                                    <span class="badge-kitchen-pill">🔒 Mətbəxdədir</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="cashier-lock-notice">
+                        <div class="lock-notice-icon">🛡️</div>
+                        <div class="lock-notice-text">
+                            <strong>Yalnız Əsas Kassir Silə Bilər</strong>
+                            Bu təamlar artıq mətbəxə ötürülüb və aşpazlar tərəfindən hazırlanır. Nizam-intizam qaydalarına əsasən, mətbəxə getmiş təamı yalnız <b>əsas kassir kompüterindən</b> ləğv etmək / silmək mümkündür.
+                        </div>
+                    </div>
+                `;
+                body.appendChild(existSection);
+            }
+
+            // BÖLMƏ 3: SUMMARY BOX
+            const summaryBox = document.createElement('div');
+            summaryBox.className = 'cart-summary-box';
+            summaryBox.innerHTML = `
+                ${newTotal > 0 ? `
+                <div class="summary-line">
+                    <span>Yeni Sifariş (Göndəriləcək):</span>
+                    <span style="color: var(--success); font-weight: 700;">+${formatCurrency(newTotal)}</span>
+                </div>` : ''}
+                ${existTotal > 0 ? `
+                <div class="summary-line">
+                    <span>Mətbəxdəki Əvvəlki Sifarişlər:</span>
+                    <span style="color: #fff; font-weight: 600;">${formatCurrency(existTotal)}</span>
+                </div>` : ''}
+                <div class="summary-line grand">
+                    <span>Masa Ümumi Hesabı:</span>
+                    <span>${formatCurrency(grandTotal)}</span>
+                </div>
+            `;
+            body.appendChild(summaryBox);
+
+            // BÖLMƏ 4: FOOTER ACTIONS
+            const footer = document.getElementById('cartSheetFooter');
+            if (footer) {
+                footer.innerHTML = '';
+
+                if (newItems.length > 0) {
+                    const sendBtn = document.createElement('button');
+                    sendBtn.className = 'btn-send-kitchen';
+                    sendBtn.id = 'btnSendKitchen';
+                    sendBtn.onclick = sendOrderToKitchen;
+                    sendBtn.innerHTML = `<span>🧑‍🍳 Mətbəxə Göndər</span> <span>(${formatCurrency(newTotal)})</span>`;
+                    footer.appendChild(sendBtn);
+
+                    const continueBtn = document.createElement('button');
+                    continueBtn.className = 'btn-continue-ordering';
+                    continueBtn.onclick = closeCartSheet;
+                    continueBtn.innerHTML = `<span>➕ Başqa Təam Seç (Menyuya Qayıt)</span>`;
+                    footer.appendChild(continueBtn);
+                } else {
+                    const addDishBtn = document.createElement('button');
+                    addDishBtn.className = 'btn-send-kitchen';
+                    addDishBtn.style.background = 'linear-gradient(135deg, #3b82f6, #2563eb)';
+                    addDishBtn.style.boxShadow = '0 4px 14px rgba(59, 130, 246, 0.4)';
+                    addDishBtn.onclick = closeCartSheet;
+                    addDishBtn.innerHTML = `<span>➕ Yeni Təam Əlavə Et (Menyu)</span>`;
+                    footer.appendChild(addDishBtn);
+                }
+
+                const isOccupiedOrBilled = (selectedTable && (selectedTable.status === 1 || selectedTable.status === 'Occupied' || selectedTable.status === 2 || selectedTable.status === 'BillRequested')) || existItems.length > 0;
+                if (isOccupiedOrBilled) {
+                    const billBtn = document.createElement('button');
+                    billBtn.className = 'btn-request-bill';
+                    billBtn.onclick = requestTableBill;
+                    billBtn.innerHTML = `<span>🧾 Hesab Tələb Et (Pre-bill)</span>`;
+                    footer.appendChild(billBtn);
+                }
+            }
+        }
+
+        // SEND ORDER TO KITCHEN
+        async function sendOrderToKitchen() {
+            if (!selectedTable) return;
+            const items = Object.values(currentCart);
+
+            if (items.length === 0) {
+                showToast('Mətbəxə göndərmək üçün yeni təam seçin!', 'warning');
+                return;
+            }
+
+            if (!currentWaiter) {
+                showToast('Zəhmət olmasa ofisiant profilini seçin!', 'warning');
+                openWaiterModal();
+                return;
+            }
+
+            const sendBtn = document.getElementById('btnSendKitchen');
+            if (sendBtn) {
+                sendBtn.disabled = true;
+                sendBtn.style.opacity = '0.6';
+                sendBtn.innerHTML = '<span>⏳ Mətbəxə ötürülür...</span>';
+            }
+
+            const payload = {
+                tableId: selectedTable.id,
+                tableName: selectedTable.name,
+                waiterName: currentWaiter.fullName,
+                items: items.map(i => ({
+                    productId: i.product.id,
+                    productName: i.product.name,
+                    unitPrice: i.product.price,
+                    quantity: i.quantity,
+                    notes: i.notes || ''
+                }))
+            };
+
+            try {
+                const res = await fetch('/api/order/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`Sifariş mətbəxə göndərildi! 🎉 (${selectedTable.name})`, 'success');
+                    currentCart = {};
+                    closeCartSheet();
+                    showTablesView();
+                } else {
+                    showToast(data.message || 'Xəta baş verdi', 'error');
+                }
+            } catch (e) {
+                showToast('Serverlə əlaqə kəsildi', 'error');
+            } finally {
+                if (sendBtn) {
+                    sendBtn.disabled = false;
+                    sendBtn.style.opacity = '1';
+                }
+            }
+        }
+
+        // REQUEST BILL
+        async function requestTableBill() {
+            if (!selectedTable) return;
+            if (!confirm(`${selectedTable.name} masası üçün hesab çeki tələb edilsin?`)) return;
+
+            try {
+                const res = await fetch('/api/table/request-bill', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tableId: selectedTable.id })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`${selectedTable.name} masası üçün hesab tələb edildi!`, 'success');
+                    closeCartSheet();
+                    showTablesView();
+                } else {
+                    showToast(data.message || 'Xəta', 'error');
+                }
+            } catch (e) {
+                showToast('Əlaqə xətası', 'error');
+            }
+        }
+
+        // ==================== KURYER PORTALI FUNKSİYALARI ====================
+        function switchMainTab(tab) {
+            currentMainTab = tab;
+            const ofiTab = document.getElementById('tabOfisiant');
+            const couTab = document.getElementById('tabCourier');
+            const couView = document.getElementById('courierView');
+            const botBar = document.getElementById('bottomCartBar');
+
+            if (tab === 'ofisiant') {
+                ofiTab.classList.add('active');
+                couTab.classList.remove('active');
+                couView.classList.remove('active');
+                showTablesView();
+            } else {
+                couTab.classList.add('active');
+                ofiTab.classList.remove('active');
+                document.getElementById('tablesView').classList.remove('active');
+                document.getElementById('menuView').classList.remove('active');
+                if (botBar) botBar.classList.remove('visible');
+                couView.classList.add('active');
+                loadCouriers();
+                loadDeliveries();
+            }
+        }
+
+        async function loadCouriers() {
+            try {
+                const res = await fetch('/api/couriers');
+                if (res.ok) {
+                    allCouriersList = await res.json();
+                    renderCourierOptions();
+                }
+            } catch (e) {
+                console.error('Error loading couriers', e);
+            }
+        }
+
+        function renderCourierOptions() {
+            const select = document.getElementById('courierSelect');
+            if (!select) return;
+            const currentVal = select.value;
+            select.innerHTML = '<option value="">🛵 Bütün Kuryerlər</option>';
+            allCouriersList.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.fullName;
+                opt.textContent = `🛵 ${c.fullName} ${c.vehiclePlate ? '(' + c.vehiclePlate + ')' : ''}`;
+                select.appendChild(opt);
+            });
+            if (currentVal) {
+                select.value = currentVal;
+            }
+        }
+
+        function onCourierFilterChange() {
+            const select = document.getElementById('courierSelect');
+            selectedCourierFilter = select ? select.value : '';
+            loadDeliveries();
+        }
+
+        async function loadDeliveries() {
+            try {
+                let url = '/api/deliveries';
+                if (selectedCourierFilter) {
+                    url += '?courier=' + encodeURIComponent(selectedCourierFilter);
+                }
+                const res = await fetch(url);
+                if (res.ok) {
+                    allDeliveries = await res.json();
+                    renderDeliveries();
+                    updateDeliveriesBadge();
+                }
+            } catch (e) {
+                console.error('Error loading deliveries', e);
+            }
+        }
+
+        function updateDeliveriesBadge() {
+            const badge = document.getElementById('activeDeliveriesBadge');
+            if (!badge) return;
+            const count = (allDeliveries || []).filter(d => !d.isDelivered).length;
+            if (count > 0) {
+                badge.style.display = 'inline-block';
+                badge.textContent = count;
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        function renderDeliveries() {
+            const grid = document.getElementById('deliveriesGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            if (!allDeliveries || allDeliveries.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">🛵</div>
+                        <h3 style="font-size:16px; color:#fff; margin-bottom:4px;">Aktiv Çatdırılma Yoxdur</h3>
+                        <p style="font-size:12px;">Hazırda yolda olan və ya təhvil verilməmiş çatdırılma sifarişi tapılmadı.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            allDeliveries.forEach(d => {
+                const card = document.createElement('div');
+                card.className = 'delivery-card' + (d.isDelivered ? ' delivered' : '');
+
+                const orderCodeDisplay = d.orderCode ? `#${escapeHtml(d.orderCode)}` : '';
+                const timeStr = d.createdAt ? new Date(d.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+
+                let statusBadge = `<span class="delivery-status-tag on-the-way">🛵 Yoldadır</span>`;
+                if (d.isDelivered) {
+                    statusBadge = `<span class="delivery-status-tag completed">✅ Çatdırılıb</span>`;
+                }
+
+                let itemsHtml = '';
+                if (d.items && d.items.length > 0) {
+                    itemsHtml = `
+                        <div class="delivery-items-box">
+                            <div class="delivery-items-title">📦 Sifariş Tərkibi (${d.items.length} növ məhsul):</div>
+                            ${d.items.map(it => `
+                                <div class="delivery-item-row">
+                                    <span>${escapeHtml(it.productName)} × <b>${it.quantity}</b></span>
+                                    <span>${formatCurrency(it.totalPrice)}</span>
+                                </div>
+                            `).join('')}
+                            <div class="delivery-total-bar">
+                                <span>Cəmi Ödəniş:</span>
+                                <span style="color:var(--gold); font-size:16px;">${formatCurrency(d.totalAmount)}</span>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div class="delivery-header">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            ${orderCodeDisplay ? `<span class="delivery-code-pill">KOD: ${orderCodeDisplay}</span>` : ''}
+                            <span class="delivery-receipt-text">${escapeHtml(d.receiptNumber)}</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <span style="font-size:11px; color:var(--text-dim);">${timeStr}</span>
+                            ${statusBadge}
+                        </div>
+                    </div>
+
+                    <div class="delivery-info-section">
+                        <div class="delivery-info-row">
+                            <span class="info-icon">👤</span>
+                            <div>
+                                <span style="font-weight:700; color:#fff;">${escapeHtml(d.customerName || 'Müştəri')}</span>
+                                ${d.customerPhone ? ` • <a href="tel:${escapeHtml(d.customerPhone)}" class="delivery-phone-link">📞 ${escapeHtml(d.customerPhone)}</a>` : ''}
+                            </div>
+                        </div>
+                        <div class="delivery-info-row">
+                            <span class="info-icon">📍</span>
+                            <div style="color:var(--text-muted);">${escapeHtml(d.address || 'Ünvan qeyd olunmayıb')}</div>
+                        </div>
+                        ${d.notes ? `
+                        <div class="delivery-info-row">
+                            <span class="info-icon">📝</span>
+                            <div style="color:#93c5fd; font-style:italic;">${escapeHtml(d.notes)}</div>
+                        </div>` : ''}
+                        <div class="delivery-info-row" style="margin-top:2px;">
+                            <span class="info-icon">🛵</span>
+                            <div>Kuryer: <b>${escapeHtml(d.courierName || 'Təyin edilməyib')}</b> ${d.courierPhone ? `(${escapeHtml(d.courierPhone)})` : ''} ${d.courierVehicle ? `[${escapeHtml(d.courierVehicle)}]` : ''}</div>
+                        </div>
+                        <div class="delivery-info-row">
+                            <span class="info-icon">💳</span>
+                            <div>Ödəniş növü: <b>${escapeHtml(d.paymentMethod || 'Nağd')}</b> ${d.deliveryFee > 0 ? `(Çatdırılma haqqı: ${formatCurrency(d.deliveryFee)})` : ''}</div>
+                        </div>
+                    </div>
+
+                    ${itemsHtml}
+
+                    ${!d.isDelivered ? `
+                        <button class="btn-complete-delivery" onclick="completeDelivery('${d.orderId}', '${escapeHtml(d.orderCode || '')}', '${escapeHtml(d.receiptNumber)}')">
+                            <span>✅ SİFARİŞİ TƏHVİL VERDİM (ÇATDIRILDI)</span>
+                        </button>
+                    ` : ''}
+                `;
+
+                grid.appendChild(card);
+            });
+        }
+
+        async function completeDelivery(orderId, code, receiptNumber) {
+            const select = document.getElementById('courierSelect');
+            const courierName = select && select.value ? select.value : 'Kuryer';
+
+            if (!confirm(`Sifariş #${code || receiptNumber} müştəriyə təhvil verildi olaraq təsdiqlənsin?`)) {
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/delivery/complete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        orderId: orderId,
+                        code: code,
+                        receiptNumber: receiptNumber,
+                        courierName: courierName
+                    })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    showToast(data.message || 'Çatdırılma uğurla tamamlandı! 🎉', 'success');
+                    await loadDeliveries();
+                } else {
+                    showToast(data.message || 'Xəta baş verdi', 'error');
+                }
+            } catch (e) {
+                showToast('Serverlə əlaqə kəsildi', 'error');
+            }
+        }
+
+        async function quickConfirmDelivery() {
+            const input = document.getElementById('quickCodeInput');
+            if (!input || !input.value.trim()) {
+                showToast('Sifariş kodunu və ya çek nömrəsini yazın!', 'warning');
+                return;
+            }
+
+            const codeVal = input.value.trim();
+            const select = document.getElementById('courierSelect');
+            const courierName = select && select.value ? select.value : 'Kuryer';
+
+            try {
+                const res = await fetch('/api/delivery/complete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        code: codeVal,
+                        courierName: courierName
+                    })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    showToast(data.message || `Kod #${codeVal} çatdırıldı!`, 'success');
+                    input.value = '';
+                    await loadDeliveries();
+                } else {
+                    showToast(data.message || 'Sifariş tapılmadı', 'error');
+                }
+            } catch (e) {
+                showToast('Server xətası', 'error');
+            }
+        }
+
+        // UTILITY FUNCTIONS
+        function onModalBgClick(e, modalId) {
+            if (e.target.id === modalId) {
+                document.getElementById(modalId).classList.remove('active');
+            }
+        }
+
+        function formatCurrency(amount) {
+            const val = Number(amount) || 0;
+            return val.toFixed(2) + ' ₼';
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return String(text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>
