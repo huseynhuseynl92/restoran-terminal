@@ -1575,6 +1575,28 @@
             transform: scale(0.96);
             background: rgba(59, 130, 246, 0.25);
         }
+
+        .pc-status-badge.online {
+            background: rgba(16, 185, 129, 0.18) !important;
+            border-color: #10b981 !important;
+            color: #34d399 !important;
+        }
+        .pc-status-badge.offline {
+            background: rgba(239, 68, 68, 0.18) !important;
+            border-color: #ef4444 !important;
+            color: #f87171 !important;
+        }
+        .badge-kitchen-pill.ready {
+            background: rgba(16, 185, 129, 0.22) !important;
+            border: 1px solid #10b981 !important;
+            color: #34d399 !important;
+            font-weight: 800 !important;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.3) !important;
+        }
+        .sent-item-row.is-ready {
+            border-color: rgba(16, 185, 129, 0.4) !important;
+            background: rgba(16, 185, 129, 0.05) !important;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -1587,9 +1609,12 @@
             <div class="brand-text">
                 <div style="display:flex; align-items:center; gap:6px;">
                     <h1 id="restaurantName" style="font-size:14px; font-weight:800;">BAKU LOUNGE POS</h1>
-                    <span style="background:rgba(16, 185, 129, 0.2); border:1px solid #10b981; color:#34d399; font-size:10px; font-weight:800; padding:1px 6px; border-radius:6px; letter-spacing:0.3px;">v3.2 CANLI</span>
+                    <span style="background:rgba(16, 185, 129, 0.2); border:1px solid #10b981; color:#34d399; font-size:10px; font-weight:800; padding:1px 6px; border-radius:6px; letter-spacing:0.3px;">v3.4 CANLI</span>
                 </div>
-                <p><span class="live-dot"></span> Ofisiant & Kassa (Avto-Sinxron ⚡)</p>
+                <div id="pcStatusBadge" class="pc-status-badge connecting" style="display:inline-flex; align-items:center; gap:5px; background:rgba(234, 179, 8, 0.15); border:1px solid rgba(234, 179, 8, 0.4); color:#facc15; font-size:10px; font-weight:800; padding:2px 8px; border-radius:12px; margin-top:3px; transition:all 0.3s ease;">
+                    <span id="pcStatusDot" class="live-dot" style="background:#facc15; box-shadow:0 0 6px #facc15; width:7px; height:7px; border-radius:50%;"></span>
+                    <span id="pcStatusText">PC Yoxlanılır...</span>
+                </div>
             </div>
         </div>
 
@@ -1817,25 +1842,50 @@
             }, 3000);
         }
 
+        // PC CONNECTION STATUS (ONLINE / OFFLINE)
+        let isPcOnline = false;
+
+        function updatePcStatusDisplay(online, lastSeenSeconds = 0) {
+            isPcOnline = online;
+            const badge = document.getElementById('pcStatusBadge');
+            const dot = document.getElementById('pcStatusDot');
+            const text = document.getElementById('pcStatusText');
+            if (!badge || !dot || !text) return;
+
+            if (online) {
+                badge.className = 'pc-status-badge online';
+                dot.style.background = '#10b981';
+                dot.style.boxShadow = '0 0 8px #10b981';
+                text.textContent = '🟢 PC Bağlıdır (Online)';
+            } else {
+                badge.className = 'pc-status-badge offline';
+                dot.style.background = '#ef4444';
+                dot.style.boxShadow = 'none';
+                text.textContent = '🔴 PC Bağlantısı Yoxdur (Offline)';
+            }
+        }
+
         // FETCH DATA
         async function fetchStatus() {
             try {
                 if (isCloud) {
                     const el = document.getElementById('restaurantName');
                     if (el) el.textContent = 'BAKU LOUNGE POS';
-                    const sub = document.querySelector('.brand-text p');
-                    if (sub) sub.innerHTML = '<span class="live-dot" style="background:#10b981;"></span> Bulud Terminalı (GitHub & Supabase)';
                     return;
                 }
-                const res = await fetch('/api/status');
+                const res = await fetch('/api/status', { signal: AbortSignal.timeout ? AbortSignal.timeout(3000) : undefined });
                 if (res.ok) {
                     const data = await res.json();
                     if (data.restaurant) {
                         document.getElementById('restaurantName').textContent = data.restaurant;
                     }
+                    updatePcStatusDisplay(true);
+                } else {
+                    updatePcStatusDisplay(false);
                 }
             } catch (e) {
                 console.error('Status fetch error', e);
+                if (!isCloud) updatePcStatusDisplay(false);
             }
         }
 
@@ -1958,14 +2008,57 @@
                 if (sb) {
                     const { data, error } = await sb.from('tables').select('*').order('name');
                     if (data && data.length > 0) {
-                        allTables = data.map(t => ({
+                        // 1. Detect PC Heartbeat
+                        const hb = data.find(t => t.name === 'PC_HEARTBEAT' || t.id === '00000000-0000-0000-0000-000000000001');
+                        if (hb && hb.updated_at) {
+                            const lastSeen = new Date(hb.updated_at).getTime();
+                            const diffSec = Math.abs(Date.now() - lastSeen) / 1000;
+                            updatePcStatusDisplay(diffSec <= 15, Math.floor(diffSec));
+                        } else {
+                            updatePcStatusDisplay(false);
+                        }
+
+                        // 2. Filter out internal heartbeat row from table list
+                        const regularTables = data.filter(t => t.name !== 'PC_HEARTBEAT' && t.id !== '00000000-0000-0000-0000-000000000001');
+
+                        // 3. Fetch active table orders to count ready/preparing items per table
+                        let tableStats = {};
+                        try {
+                            const { data: actOrders } = await sb.from('orders')
+                                .select('table_id, items, status')
+                                .eq('order_type', 'TableOrder')
+                                .neq('status', 'Paid');
+
+                            if (actOrders && actOrders.length > 0) {
+                                actOrders.forEach(ord => {
+                                    const tid = ord.table_id;
+                                    if (!tid) return;
+                                    if (!tableStats[tid]) tableStats[tid] = { readyCount: 0, prepCount: 0, totalItems: 0 };
+                                    if (Array.isArray(ord.items)) {
+                                        ord.items.forEach(it => {
+                                            const q = Number(it.quantity) || 1;
+                                            tableStats[tid].totalItems += q;
+                                            if (it.isKitchenReady === true || it.kitchenStatus === 'Ready') {
+                                                tableStats[tid].readyCount += q;
+                                            } else {
+                                                tableStats[tid].prepCount += q;
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                        } catch { }
+
+                        allTables = regularTables.map(t => ({
                             id: t.id,
                             name: t.name,
                             area: t.area || 'Əsas Zal',
                             status: t.status || 'Empty',
                             currentTotal: Number(t.current_total) || 0,
                             openedAt: t.opened_at || null,
-                            itemsCount: 0
+                            itemsCount: (tableStats[t.id] && tableStats[t.id].totalItems) || 0,
+                            readyCount: (tableStats[t.id] && tableStats[t.id].readyCount) || 0,
+                            prepCount: (tableStats[t.id] && tableStats[t.id].prepCount) || 0
                         }));
                         renderTables();
                         return;
@@ -1980,9 +2073,13 @@
                 if (res.ok) {
                     allTables = await res.json();
                     renderTables();
+                    updatePcStatusDisplay(true);
+                } else {
+                    updatePcStatusDisplay(false);
                 }
             } catch (e) {
                 console.error(e);
+                if (!isCloud) updatePcStatusDisplay(false);
             }
         }
 
@@ -1998,6 +2095,7 @@
                             if (selectedTable) refreshTableCart(selectedTable.id);
                         })
                         .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+                            loadTables();
                             if (selectedTable) refreshTableCart(selectedTable.id);
                         })
                         .subscribe();
@@ -2034,12 +2132,15 @@
                                 ord.items.forEach(it => {
                                     const uPrice = Number(it.unitPrice) || 0;
                                     const qty = Number(it.quantity) || 1;
+                                    const isReady = it.isKitchenReady === true || it.kitchenStatus === 'Ready' || ord.is_kitchen_ready === true;
                                     combinedItems.push({
                                         productId: it.productId,
                                         productName: it.productName,
                                         unitPrice: uPrice,
                                         quantity: qty,
-                                        notes: it.notes || ''
+                                        notes: it.notes || '',
+                                        isKitchenReady: isReady,
+                                        kitchenStatus: isReady ? 'Ready' : (it.kitchenStatus || 'Preparing')
                                     });
                                     grandTotal += uPrice * qty;
                                 });
@@ -2214,6 +2315,7 @@
             grid.innerHTML = '';
 
             const filtered = allTables.filter(t => {
+                if (t.name === 'PC_HEARTBEAT' || t.area === 'Sistem' || t.id === '00000000-0000-0000-0000-000000000001') return false;
                 if (currentArea === 'Hamısı') return true;
                 return t.area === currentArea;
             });
@@ -2276,7 +2378,13 @@
                             <div class="table-name">${escapeHtml(table.name)}</div>
                             <div class="table-area">${escapeHtml(table.area || '')}</div>
                         </div>
-                        <div class="table-status-tag ${tagClass}">${tagText}</div>
+                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                            <div class="table-status-tag ${tagClass}">${tagText}</div>
+                            ${table.readyCount > 0 
+                                ? `<div class="table-ready-pill" style="background:rgba(16, 185, 129, 0.25); border:1px solid #10b981; color:#34d399; font-size:10px; font-weight:800; padding:2px 6px; border-radius:6px; animation: pulse 1.5s infinite; letter-spacing:0.3px;">🔔 M/Hazır (${table.readyCount})</div>` 
+                                : (table.prepCount > 0 ? `<div style="background:rgba(56, 189, 248, 0.15); border:1px solid rgba(56, 189, 248, 0.3); color:#38bdf8; font-size:10px; font-weight:700; padding:2px 6px; border-radius:6px;">👨‍🍳 Mətbəxdə (${table.prepCount})</div>` : '')
+                            }
+                        </div>
                     </div>
                     <div class="table-bottom">
                         ${bottomInfo}
@@ -2430,18 +2538,7 @@
             });
         }
 
-        // CART LOGIC & AUTO-SYNC
-        let autoSyncTimer = null;
-        function triggerAutoSyncToPc() {
-            if (autoSyncTimer) clearTimeout(autoSyncTimer);
-            autoSyncTimer = setTimeout(async () => {
-                const itemsCount = Object.keys(currentCart).length;
-                if (itemsCount > 0 && selectedTable) {
-                    await sendOrderToKitchen(true);
-                }
-            }, 1000); // 1 saniyə toxunulmadıqda avtomatik PC-yə ötürür
-        }
-
+        // CART LOGIC (YALNIZ OFİSİANT "GÖNDƏR" BASANDA MƏTBƏXƏ GEDİR)
         function addToCart(productId, delta) {
             const prod = allProducts.find(p => p.id === productId);
             if (!prod) return;
@@ -2470,9 +2567,6 @@
             updateBottomCartBar();
             updateTopCartButton();
             renderCartSheet();
-
-            // Avtomatik olaraq PC Kassaya göndər (ofisiant heç nə basmasa belə)
-            triggerAutoSyncToPc();
         }
 
         function removeNewCartItem(productId) {
@@ -2653,8 +2747,10 @@
                         <span class="badge-kitchen-pill">🔒 Təsdiqlənib</span>
                     </div>
                     <div class="sent-items-list">
-                        ${existItems.map(prev => `
-                            <div class="sent-item-row">
+                        ${existItems.map(prev => {
+                            const isReady = prev.isKitchenReady === true || prev.kitchenStatus === 'Ready';
+                            return `
+                            <div class="sent-item-row ${isReady ? 'is-ready' : ''}">
                                 <div class="sent-item-info">
                                     <div class="sent-item-title">${escapeHtml(prev.productName)}</div>
                                     <div class="sent-item-sub">
@@ -2664,10 +2760,14 @@
                                 </div>
                                 <div class="sent-item-right">
                                     <div class="sent-item-amount">${formatCurrency(prev.unitPrice * prev.quantity)}</div>
-                                    <span class="badge-kitchen-pill">🔒 Mətbəxdədir</span>
+                                    ${isReady
+                                        ? `<span class="badge-kitchen-pill ready" style="background: rgba(16, 185, 129, 0.2); border: 1.5px solid #10b981; color: #34d399; font-weight: 800; font-size: 11px; padding: 3px 8px; border-radius: 6px; box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);">✅ M/Hazır</span>`
+                                        : `<span class="badge-kitchen-pill" style="background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.35); color: #38bdf8; font-weight: 700; font-size: 11px; padding: 3px 8px; border-radius: 6px;">👨‍🍳 Mətbəxdədir</span>`
+                                    }
                                 </div>
                             </div>
-                        `).join('')}
+                            `;
+                        }).join('')}
                     </div>
                     <div class="cashier-lock-notice">
                         <div class="lock-notice-icon">🛡️</div>
@@ -2741,16 +2841,12 @@
         }
 
         // SEND ORDER TO KITCHEN
-        async function sendOrderToKitchen(isAuto = false) {
-            if (autoSyncTimer) {
-                clearTimeout(autoSyncTimer);
-                autoSyncTimer = null;
-            }
+        async function sendOrderToKitchen() {
             if (!selectedTable) return;
             const items = Object.values(currentCart);
 
             if (items.length === 0) {
-                if (!isAuto) showToast('Mətbəxə göndərmək üçün yeni təam seçin!', 'warning');
+                showToast('Mətbəxə göndərmək üçün yeni təam seçin!', 'warning');
                 return;
             }
 
@@ -2759,7 +2855,7 @@
             }
 
             const sendBtn = document.getElementById('btnSendKitchen');
-            if (sendBtn && !isAuto) {
+            if (sendBtn) {
                 sendBtn.disabled = true;
                 sendBtn.style.opacity = '0.6';
                 sendBtn.innerHTML = '<span>⏳ Mətbəxə və Kassaya ötürülür...</span>';
@@ -2836,19 +2932,10 @@
 
             if (sentSuccess) {
                 const totalItemCount = items.reduce((s, it) => s + it.quantity, 0);
-                showToast(isAuto ? `⚡ ${totalItemCount} təam PC Kassaya göndərildi! (${selectedTable.name})` : `Sifariş göndərildi! 🎉 (${selectedTable.name} — ${items.length} təam)`, 'success');
+                showToast(`Sifariş mətbəxə göndərildi! 🎉 (${selectedTable.name} — ${totalItemCount} təam)`, 'success');
                 currentCart = {};
-                if (!isAuto) {
-                    closeCartSheet();
-                    showTablesView();
-                } else {
-                    renderProducts();
-                    updateBottomCartBar();
-                    updateTopCartButton();
-                    if (document.getElementById('cartModalOverlay') && document.getElementById('cartModalOverlay').classList.contains('active')) {
-                        renderCartSheet();
-                    }
-                }
+                closeCartSheet();
+                showTablesView();
                 await loadTables();
                 if (selectedTable) {
                     await refreshTableCart(selectedTable.id);
