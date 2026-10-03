@@ -2047,7 +2047,8 @@
                                         ord.items.forEach(it => {
                                             const q = Number(it.quantity) || 1;
                                             tableStats[tid].totalItems += q;
-                                            if (it.isKitchenReady === true || it.kitchenStatus === 'Ready') {
+                                            const isReady = it.isKitchenReady === true || String(it.isKitchenReady).toLowerCase() === 'true' || it.kitchenStatus === 'Ready' || String(it.kitchenStatus).toLowerCase() === 'ready' || ord.is_kitchen_ready === true;
+                                            if (isReady) {
                                                 tableStats[tid].readyCount += q;
                                             } else {
                                                 tableStats[tid].prepCount += q;
@@ -2157,7 +2158,7 @@
                                 ord.items.forEach(it => {
                                     const uPrice = Number(it.unitPrice) || 0;
                                     const qty = Number(it.quantity) || 1;
-                                    const isReady = it.isKitchenReady === true || it.kitchenStatus === 'Ready' || ord.is_kitchen_ready === true;
+                                    const isReady = it.isKitchenReady === true || String(it.isKitchenReady).toLowerCase() === 'true' || it.kitchenStatus === 'Ready' || String(it.kitchenStatus).toLowerCase() === 'ready' || ord.is_kitchen_ready === true;
                                     combinedItems.push({
                                         productId: it.productId,
                                         productName: it.productName,
@@ -2773,7 +2774,7 @@
                     </div>
                     <div class="sent-items-list">
                         ${existItems.map(prev => {
-                            const isReady = prev.isKitchenReady === true || prev.kitchenStatus === 'Ready';
+                            const isReady = prev.isKitchenReady === true || String(prev.isKitchenReady).toLowerCase() === 'true' || prev.kitchenStatus === 'Ready' || String(prev.kitchenStatus).toLowerCase() === 'ready';
                             return `
                             <div class="sent-item-row ${isReady ? 'is-ready' : ''}">
                                 <div class="sent-item-info">
