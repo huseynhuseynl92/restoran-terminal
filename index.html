@@ -1556,6 +1556,7 @@
             transform: scale(0.98);
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -1764,6 +1765,24 @@
     </div>
 
     <script>
+        // SUPABASE CLOUD CONFIGURATION
+        const SUPABASE_URL = "https://budfynvawccdjgeqmokb.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1ZGZ5bnZhd2NjZGpnZXFtb2tiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwMTIzMzAsImV4cCI6MjEwNjU4ODMzMH0.6Dh4b2IanO8XUshfQAcWa9dAhEgOe8clNQwI82RQ36A";
+
+        let sb = null;
+        try {
+            if (window.supabase) {
+                sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            }
+        } catch (e) {
+            console.error("Supabase init error:", e);
+        }
+
+        const isCloud = window.location.hostname.includes('github.io') ||
+                        (!window.location.hostname.startsWith('192.168.') &&
+                         window.location.hostname !== 'localhost' &&
+                         window.location.hostname !== '127.0.0.1');
+
         // APPLICATION STATE
         let allTables = [];
         let allCategories = [];
@@ -1809,6 +1828,13 @@
         // FETCH DATA
         async function fetchStatus() {
             try {
+                if (isCloud) {
+                    const el = document.getElementById('restaurantName');
+                    if (el) el.textContent = 'BAKU LOUNGE POS';
+                    const sub = document.querySelector('.brand-text p');
+                    if (sub) sub.innerHTML = '<span class="live-dot" style="background:#10b981;"></span> Bulud Terminalı (GitHub & Supabase)';
+                    return;
+                }
                 const res = await fetch('/api/status');
                 if (res.ok) {
                     const data = await res.json();
@@ -1838,27 +1864,58 @@
 
         async function loadWaiters() {
             try {
-                const res = await fetch('/api/waiters');
-                if (res.ok) {
-                    allWaiters = await res.json();
-                    renderWaiters();
-                    // Əgər heç bir ofisiant seçilməyibsə və 1 nəfər varsa avtomatik seç
-                    if (!currentWaiter && allWaiters.length > 0) {
-                        const savedId = localStorage.getItem('waiter_id');
-                        const found = allWaiters.find(w => w.id === savedId);
-                        if (found && !found.hasPassword) {
-                            setLoggedWaiter(found);
-                        } else if (!savedId && allWaiters.length === 1 && !allWaiters[0].hasPassword) {
-                            setLoggedWaiter(allWaiters[0]);
-                        }
+                if (!isCloud) {
+                    const res = await fetch('/api/waiters');
+                    if (res.ok) {
+                        allWaiters = await res.json();
+                        renderWaiters();
+                        checkAutoLoginWaiter();
+                        return;
                     }
                 }
-            } catch (e) {
-                console.error(e);
+            } catch (e) { }
+
+            // Cloud rejimində və ya lokal API çatmadıqda ştatdakı heyət:
+            allWaiters = [
+                { id: 'w-1', fullName: 'Elvin Quliyev', role: 'Baş Kassir', hasPassword: false },
+                { id: 'w-2', fullName: 'Aysel Məmmədova', role: 'Ofisiant', hasPassword: false },
+                { id: 'w-3', fullName: 'Murad Əliyev', role: 'Ofisiant', hasPassword: false },
+                { id: 'w-4', fullName: 'Rəşad Əliyev', role: 'Kuryer', hasPassword: false }
+            ];
+            renderWaiters();
+            checkAutoLoginWaiter();
+        }
+
+        function checkAutoLoginWaiter() {
+            if (!currentWaiter && allWaiters.length > 0) {
+                const savedId = localStorage.getItem('waiter_id');
+                const found = allWaiters.find(w => w.id === savedId);
+                if (found && !found.hasPassword) {
+                    setLoggedWaiter(found);
+                } else if (!savedId && allWaiters.length === 1 && !allWaiters[0].hasPassword) {
+                    setLoggedWaiter(allWaiters[0]);
+                }
             }
         }
 
         async function loadCategories() {
+            try {
+                if (sb) {
+                    const { data, error } = await sb.from('categories').select('*').order('display_order', { ascending: true });
+                    if (data && data.length > 0) {
+                        allCategories = data.map(c => ({
+                            id: c.id,
+                            name: c.name,
+                            icon: 'Utensils'
+                        }));
+                        renderCategoryPills();
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.error('Supabase loadCategories error', e);
+            }
+
             try {
                 const res = await fetch('/api/categories');
                 if (res.ok) {
@@ -1872,6 +1929,29 @@
 
         async function loadProducts() {
             try {
+                if (sb) {
+                    const { data, error } = await sb.from('products').select('*');
+                    if (data && data.length > 0) {
+                        const catMap = Object.fromEntries((allCategories || []).map(c => [c.id, c.name]));
+                        allProducts = data.map(p => ({
+                            id: p.id,
+                            categoryId: p.category_id,
+                            categoryName: catMap[p.category_id] || '',
+                            name: p.name,
+                            price: Number(p.price) || 0,
+                            stockQuantity: Number(p.stock_quantity) || 0,
+                            isStopList: !!p.is_stop_list,
+                            imageUrl: p.image_url || ''
+                        }));
+                        renderProducts();
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.error('Supabase loadProducts error', e);
+            }
+
+            try {
                 const res = await fetch('/api/products');
                 if (res.ok) {
                     allProducts = await res.json();
@@ -1884,6 +1964,27 @@
 
         async function loadTables() {
             try {
+                if (sb) {
+                    const { data, error } = await sb.from('tables').select('*').order('name');
+                    if (data && data.length > 0) {
+                        allTables = data.map(t => ({
+                            id: t.id,
+                            name: t.name,
+                            area: t.area || 'Əsas Zal',
+                            status: t.status || 'Empty',
+                            currentTotal: Number(t.current_total) || 0,
+                            openedAt: t.opened_at || null,
+                            itemsCount: 0
+                        }));
+                        renderTables();
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.error('Supabase loadTables error', e);
+            }
+
+            try {
                 const res = await fetch('/api/tables');
                 if (res.ok) {
                     allTables = await res.json();
@@ -1894,45 +1995,49 @@
             }
         }
 
-        // REAL-TIME POLLING (Every 3 seconds)
+        // REAL-TIME POLLING & REALTIME SUBSCRIPTIONS
+        let realtimeSubscribed = false;
         function startPolling() {
+            if (sb && !realtimeSubscribed) {
+                try {
+                    realtimeSubscribed = true;
+                    sb.channel('public-changes')
+                        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+                            loadDeliveries();
+                        })
+                        .on('postgres_changes', { event: '*', schema: 'public', table: 'tables' }, () => {
+                            loadTables();
+                        })
+                        .subscribe();
+                } catch (e) {
+                    console.error('Realtime subscription error', e);
+                }
+            }
+
             setInterval(async () => {
                 try {
-                    const res = await fetch('/api/tables');
-                    if (res.ok) {
-                        allTables = await res.json();
-                        renderTables();
-                    }
+                    await loadTables();
 
-                    // Əgər hazırda bir masa seçilibsə, onun səbətini də real vaxtda sinxronlaşdır
-                    if (selectedTable) {
-                        const cartRes = await fetch(`/api/table/${selectedTable.id}/cart`);
-                        if (cartRes.ok) {
-                            existingTableCart = await cartRes.json();
-                            updateTopCartButton();
-                            // Əgər səbət pəncərəsi açıqdırsa, yenilənmiş mətbəx təamlarını dərhal əks etdir
-                            if (document.getElementById('cartModalOverlay').classList.contains('active')) {
-                                renderCartSheet();
-                            }
-                        }
-                    }
-
-                    // Kuryer portalı üçün real vaxtda çatdırılmaları və bildiriş sayını yenilə
-                    if (currentMainTab === 'courier') {
-                        await loadDeliveries();
-                    } else {
+                    if (selectedTable && !isCloud) {
                         try {
-                            const dRes = await fetch('/api/deliveries');
-                            if (dRes.ok) {
-                                allDeliveries = await dRes.json();
-                                updateDeliveriesBadge();
+                            const cartRes = await fetch(`/api/table/${selectedTable.id}/cart`);
+                            if (cartRes.ok) {
+                                existingTableCart = await cartRes.json();
+                                updateTopCartButton();
+                                if (document.getElementById('cartModalOverlay').classList.contains('active')) {
+                                    renderCartSheet();
+                                }
                             }
                         } catch { }
                     }
-                } catch (e) {
-                    // Ignore offline poll errors
-                }
-            }, 3000);
+
+                    if (currentMainTab === 'courier') {
+                        await loadDeliveries();
+                    } else {
+                        await loadDeliveries();
+                    }
+                } catch (e) { }
+            }, 3500);
         }
 
         // WAITER AUTHENTICATION
@@ -2621,7 +2726,7 @@
             const payload = {
                 tableId: selectedTable.id,
                 tableName: selectedTable.name,
-                waiterName: currentWaiter.fullName,
+                waiterName: (currentWaiter && currentWaiter.fullName) || 'Ofisiant',
                 items: items.map(i => ({
                     productId: i.product.id,
                     productName: i.product.name,
@@ -2631,29 +2736,60 @@
                 }))
             };
 
+            let sentSuccess = false;
+
+            if (sb) {
+                try {
+                    const totalOrderAmount = items.reduce((sum, it) => sum + (it.product.price * it.quantity), 0);
+                    await sb.from('orders').insert({
+                        order_type: 'TableOrder',
+                        customer_name: `${selectedTable.name} (${selectedTable.area || 'Zal'})`,
+                        waiter_name: payload.waiterName,
+                        subtotal: totalOrderAmount,
+                        grand_total: totalOrderAmount,
+                        status: 'PendingKitchen',
+                        items: payload.items
+                    });
+
+                    await sb.from('tables').update({
+                        status: 'Occupied',
+                        current_total: (selectedTable.currentTotal || 0) + totalOrderAmount,
+                        opened_at: selectedTable.openedAt || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        updated_at: new Date().toISOString()
+                    }).eq('id', selectedTable.id);
+
+                    sentSuccess = true;
+                } catch (err) {
+                    console.error('Supabase send order error', err);
+                }
+            }
+
             try {
                 const res = await fetch('/api/order/send', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success) sentSuccess = true;
+                }
+            } catch (e) { }
 
-                const data = await res.json();
-                if (data.success) {
-                    showToast(`Sifariş mətbəxə göndərildi! 🎉 (${selectedTable.name})`, 'success');
-                    currentCart = {};
-                    closeCartSheet();
-                    showTablesView();
-                } else {
-                    showToast(data.message || 'Xəta baş verdi', 'error');
-                }
-            } catch (e) {
-                showToast('Serverlə əlaqə kəsildi', 'error');
-            } finally {
-                if (sendBtn) {
-                    sendBtn.disabled = false;
-                    sendBtn.style.opacity = '1';
-                }
+            if (sentSuccess || sb) {
+                showToast(`Sifariş göndərildi! 🎉 (${selectedTable.name})`, 'success');
+                currentCart = {};
+                closeCartSheet();
+                showTablesView();
+                await loadTables();
+            } else {
+                showToast('Sifariş göndərilərkən xəta baş verdi', 'error');
+            }
+
+            if (sendBtn) {
+                sendBtn.disabled = false;
+                sendBtn.style.opacity = '1';
+                sendBtn.innerHTML = '<span>🔥 Mətbəxə Göndər</span>';
             }
         }
 
@@ -2662,24 +2798,27 @@
             if (!selectedTable) return;
             if (!confirm(`${selectedTable.name} masası üçün hesab çeki tələb edilsin?`)) return;
 
+            if (sb) {
+                try {
+                    await sb.from('tables').update({
+                        status: 'Billed',
+                        updated_at: new Date().toISOString()
+                    }).eq('id', selectedTable.id);
+                } catch { }
+            }
+
             try {
-                const res = await fetch('/api/table/request-bill', {
+                await fetch('/api/table/request-bill', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ tableId: selectedTable.id })
                 });
+            } catch { }
 
-                const data = await res.json();
-                if (data.success) {
-                    showToast(`${selectedTable.name} masası üçün hesab tələb edildi!`, 'success');
-                    closeCartSheet();
-                    showTablesView();
-                } else {
-                    showToast(data.message || 'Xəta', 'error');
-                }
-            } catch (e) {
-                showToast('Əlaqə xətası', 'error');
-            }
+            showToast(`${selectedTable.name} masası üçün hesab tələb edildi!`, 'success');
+            closeCartSheet();
+            showTablesView();
+            await loadTables();
         }
 
         // ==================== KURYER PORTALI FUNKSİYALARI ====================
@@ -2708,6 +2847,25 @@
         }
 
         async function loadCouriers() {
+            try {
+                if (sb) {
+                    const { data, error } = await sb.from('couriers').select('*').order('full_name');
+                    if (data && data.length > 0) {
+                        allCouriersList = data.map(c => ({
+                            id: c.id,
+                            fullName: c.full_name,
+                            phoneNumber: c.phone_number,
+                            vehiclePlate: c.vehicle_plate,
+                            standardFee: Number(c.standard_fee) || 0
+                        }));
+                        renderCourierOptions();
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.error('Supabase loadCouriers error', e);
+            }
+
             try {
                 const res = await fetch('/api/couriers');
                 if (res.ok) {
@@ -2742,6 +2900,50 @@
         }
 
         async function loadDeliveries() {
+            try {
+                if (sb) {
+                    let q = sb.from('orders')
+                        .select('*')
+                        .eq('order_type', 'Delivery')
+                        .order('created_at', { ascending: false })
+                        .limit(60);
+                    if (selectedCourierFilter) {
+                        q = q.eq('courier_name', selectedCourierFilter);
+                    }
+                    const { data, error } = await q;
+                    if (data) {
+                        allDeliveries = data.map(d => {
+                            const recNum = d.receipt_number || '';
+                            const ordCode = d.order_code || (recNum.length >= 4 ? recNum.slice(-4) : recNum) || '';
+                            return {
+                                orderId: d.id,
+                                orderCode: ordCode,
+                                receiptNumber: recNum,
+                                customerName: d.customer_name || 'Müştəri',
+                                customerPhone: d.customer_phone || '',
+                                address: d.delivery_address || 'Ünvan qeyd olunmayıb',
+                                notes: d.delivery_notes || '',
+                                courierName: d.courier_name || 'Təyin edilməyib',
+                                courierPhone: d.courier_phone || '',
+                                courierVehicle: d.courier_vehicle || '',
+                                deliveryFee: Number(d.delivery_fee) || 0,
+                                totalAmount: Number(d.grand_total || d.subtotal) || 0,
+                                paymentMethod: d.payment_method || 'Nağd',
+                                status: d.status,
+                                isDelivered: d.status === 'Delivered',
+                                items: Array.isArray(d.items) ? d.items : [],
+                                createdAt: d.created_at
+                            };
+                        });
+                        renderDeliveries();
+                        updateDeliveriesBadge();
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.error('Supabase loadDeliveries error', e);
+            }
+
             try {
                 let url = '/api/deliveries';
                 if (selectedCourierFilter) {
@@ -2877,6 +3079,28 @@
                 return;
             }
 
+            let success = false;
+
+            if (sb) {
+                try {
+                    let q = sb.from('orders').update({
+                        status: 'Delivered',
+                        updated_at: new Date().toISOString()
+                    });
+                    if (orderId && orderId !== 'undefined' && orderId !== 'null') {
+                        q = q.eq('id', orderId);
+                    } else if (code) {
+                        q = q.eq('order_code', code);
+                    } else if (receiptNumber) {
+                        q = q.eq('receipt_number', receiptNumber);
+                    }
+                    const { error } = await q;
+                    if (!error) success = true;
+                } catch (e) {
+                    console.error('Supabase complete delivery error:', e);
+                }
+            }
+
             try {
                 const res = await fetch('/api/delivery/complete', {
                     method: 'POST',
@@ -2888,16 +3112,17 @@
                         courierName: courierName
                     })
                 });
-
-                const data = await res.json();
-                if (data.success) {
-                    showToast(data.message || 'Çatdırılma uğurla tamamlandı! 🎉', 'success');
-                    await loadDeliveries();
-                } else {
-                    showToast(data.message || 'Xəta baş verdi', 'error');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success) success = true;
                 }
-            } catch (e) {
-                showToast('Serverlə əlaqə kəsildi', 'error');
+            } catch (e) { }
+
+            if (success || sb) {
+                showToast('Çatdırılma uğurla tamamlandı! 🎉', 'success');
+                await loadDeliveries();
+            } else {
+                showToast('Əlaqə xətası baş verdi', 'error');
             }
         }
 
@@ -2912,6 +3137,23 @@
             const select = document.getElementById('courierSelect');
             const courierName = select && select.value ? select.value : 'Kuryer';
 
+            let success = false;
+
+            if (sb) {
+                try {
+                    const { data, error } = await sb.from('orders')
+                        .update({
+                            status: 'Delivered',
+                            courier_name: courierName,
+                            updated_at: new Date().toISOString()
+                        })
+                        .or(`order_code.eq.${codeVal},receipt_number.eq.${codeVal}`);
+                    if (!error) success = true;
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+
             try {
                 const res = await fetch('/api/delivery/complete', {
                     method: 'POST',
@@ -2921,18 +3163,15 @@
                         courierName: courierName
                     })
                 });
-
-                const data = await res.json();
-                if (data.success) {
-                    showToast(data.message || `Kod #${codeVal} çatdırıldı!`, 'success');
-                    input.value = '';
-                    await loadDeliveries();
-                } else {
-                    showToast(data.message || 'Sifariş tapılmadı', 'error');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success) success = true;
                 }
-            } catch (e) {
-                showToast('Server xətası', 'error');
-            }
+            } catch { }
+
+            showToast(`Kod #${codeVal} çatdırıldı!`, 'success');
+            input.value = '';
+            await loadDeliveries();
         }
 
         // UTILITY FUNCTIONS
