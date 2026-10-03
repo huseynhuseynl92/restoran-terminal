@@ -1663,13 +1663,18 @@
 
     <!-- BOTTOM FLOATING CART BAR -->
     <div class="bottom-cart-bar" id="bottomCartBar">
-        <div class="cart-bar-info">
+        <div class="cart-bar-info" onclick="openCartSheet()" style="cursor: pointer;">
             <span class="cart-bar-count" id="cartBarCount">0 təam seçilib</span>
             <span class="cart-bar-total" id="cartBarTotal">0.00 ₼</span>
         </div>
-        <button class="btn-view-cart" onclick="openCartSheet()">
-            <span>🛒 Səbətə Bax</span>
-        </button>
+        <div style="display: flex; gap: 8px;">
+            <button class="btn-view-cart" onclick="openCartSheet()">
+                <span>🛒 Səbət</span>
+            </button>
+            <button class="btn-view-cart" style="background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);" onclick="sendOrderToKitchen()">
+                <span>🚀 Göndər</span>
+            </button>
+        </div>
     </div>
 
     <!-- CART BOTTOM SHEET MODAL -->
@@ -2685,7 +2690,7 @@
                     sendBtn.className = 'btn-send-kitchen';
                     sendBtn.id = 'btnSendKitchen';
                     sendBtn.onclick = sendOrderToKitchen;
-                    sendBtn.innerHTML = `<span>🧑‍🍳 Mətbəxə Göndər</span> <span>(${formatCurrency(newTotal)})</span>`;
+                    sendBtn.innerHTML = `<span>🚀 Sifarişi Kassaya və Mətbəxə Göndər</span> <span>(${formatCurrency(newTotal)})</span>`;
                     footer.appendChild(sendBtn);
 
                     const continueBtn = document.createElement('button');
@@ -2734,7 +2739,7 @@
             if (sendBtn) {
                 sendBtn.disabled = true;
                 sendBtn.style.opacity = '0.6';
-                sendBtn.innerHTML = '<span>⏳ Mətbəxə ötürülür...</span>';
+                sendBtn.innerHTML = '<span>⏳ Mətbəxə və Kassaya ötürülür...</span>';
             }
 
             const payload = {
@@ -2755,7 +2760,13 @@
             if (sb) {
                 try {
                     const totalOrderAmount = items.reduce((sum, it) => sum + (it.product.price * it.quantity), 0);
+                    const randCode = String(Math.floor(1000 + Math.random() * 9000));
+                    const orderCode = `${selectedTable.name}-${randCode}`;
+                    const receiptNumber = `#ORD-${orderCode}`;
+
                     const { data, error } = await sb.from('orders').insert({
+                        order_code: orderCode,
+                        receipt_number: receiptNumber,
                         order_type: 'TableOrder',
                         table_id: selectedTable.id,
                         table_name: selectedTable.name,
@@ -2772,6 +2783,7 @@
                         sentSuccess = true;
                     } else {
                         console.error('Supabase send order error', error);
+                        showToast(`Supabase xətası: ${error.message || JSON.stringify(error)}`, 'error');
                     }
 
                     await sb.from('tables').update({
@@ -2783,6 +2795,7 @@
 
                 } catch (err) {
                     console.error('Supabase send order error', err);
+                    showToast(`Sifariş xətası: ${err.message || err}`, 'error');
                 }
             }
 
@@ -2798,20 +2811,20 @@
                 }
             } catch (e) { }
 
-            if (sentSuccess || sb) {
-                showToast(`Sifariş göndərildi! 🎉 (${selectedTable.name})`, 'success');
+            if (sentSuccess) {
+                showToast(`Sifariş göndərildi! 🎉 (${selectedTable.name} — ${items.length} təam)`, 'success');
                 currentCart = {};
                 closeCartSheet();
                 showTablesView();
                 await loadTables();
-            } else {
+            } else if (!sb) {
                 showToast('Sifariş göndərilərkən xəta baş verdi', 'error');
             }
 
             if (sendBtn) {
                 sendBtn.disabled = false;
                 sendBtn.style.opacity = '1';
-                sendBtn.innerHTML = '<span>🔥 Mətbəxə Göndər</span>';
+                sendBtn.innerHTML = '<span>🚀 Sifarişi Kassaya və Mətbəxə Göndər</span>';
             }
         }
 
@@ -2824,18 +2837,23 @@
 
             if (sb) {
                 try {
-                    await sb.from('orders').insert({
+                    const randCode = String(Math.floor(1000 + Math.random() * 9000));
+                    const orderCode = `BILL-${selectedTable.name}-${randCode}`;
+                    const { error } = await sb.from('orders').insert({
+                        order_code: orderCode,
+                        receipt_number: `#BILL-${orderCode}`,
                         order_type: 'BillRequest',
                         table_id: selectedTable.id,
                         table_name: selectedTable.name,
                         status: 'Pending',
                         created_at: new Date().toISOString()
                     });
+                    if (!error) reqSuccess = true;
+
                     await sb.from('tables').update({
                         status: 'Billed',
                         updated_at: new Date().toISOString()
                     }).eq('id', selectedTable.id);
-                    reqSuccess = true;
                 } catch (e) {
                     console.error('Supabase bill request error', e);
                 }
@@ -2850,7 +2868,11 @@
                 if (res.ok) reqSuccess = true;
             } catch { }
 
-            showToast(`${selectedTable.name} masası üçün hesab tələb edildi! 🧾`, 'success');
+            if (reqSuccess) {
+                showToast(`${selectedTable.name} masası üçün hesab tələb edildi! 🧾`, 'success');
+            } else {
+                showToast('Hesab tələb edilərkən xəta baş verdi', 'error');
+            }
             closeCartSheet();
             showTablesView();
             await loadTables();
