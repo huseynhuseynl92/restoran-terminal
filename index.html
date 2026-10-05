@@ -2076,6 +2076,10 @@
                                 prepCount: isBusy ? ((tableStats[t.id] && tableStats[t.id].prepCount) || 0) : 0
                             };
                         });
+                        if (selectedTable) {
+                            const fresh = allTables.find(t => t.id === selectedTable.id);
+                            if (fresh) selectedTable = fresh;
+                        }
                         renderTables();
                         return;
                     }
@@ -2088,6 +2092,10 @@
                 const res = await fetch('/api/tables');
                 if (res.ok) {
                     allTables = await res.json();
+                    if (selectedTable) {
+                        const fresh = allTables.find(t => t.id === selectedTable.id);
+                        if (fresh) selectedTable = fresh;
+                    }
                     renderTables();
                     updatePcStatusDisplay(true);
                 } else {
@@ -2168,24 +2176,32 @@
                         let combinedItems = [];
                         let grandTotal = 0;
                         activeOrders.forEach(ord => {
+                            let orderRowTotal = Number(ord.grand_total ?? ord.subtotal) || 0;
+                            let ordItemsTotal = 0;
                             if (Array.isArray(ord.items)) {
                                 ord.items.forEach(it => {
-                                    const uPrice = Number(it.unitPrice) || 0;
-                                    const qty = Number(it.quantity) || 1;
+                                    const uPrice = Number(it.unitPrice ?? it.unit_price ?? it.price) || 0;
+                                    const qty = Number(it.quantity ?? it.qty) || 1;
                                     const isReady = it.isKitchenReady === true || String(it.isKitchenReady).toLowerCase() === 'true' || it.kitchenStatus === 'Ready' || String(it.kitchenStatus).toLowerCase() === 'ready' || ord.is_kitchen_ready === true;
                                     combinedItems.push({
-                                        productId: it.productId,
-                                        productName: it.productName,
+                                        productId: it.productId || it.product_id,
+                                        productName: it.productName || it.name || 'Məhsul',
                                         unitPrice: uPrice,
                                         quantity: qty,
                                         notes: it.notes || '',
                                         isKitchenReady: isReady,
                                         kitchenStatus: isReady ? 'Ready' : (it.kitchenStatus || 'Preparing')
                                     });
-                                    grandTotal += uPrice * qty;
+                                    ordItemsTotal += uPrice * qty;
                                 });
                             }
+                            grandTotal += (ordItemsTotal > 0 ? ordItemsTotal : orderRowTotal);
                         });
+
+                        if (grandTotal === 0 && selectedTable && Number(selectedTable.currentTotal) > 0) {
+                            grandTotal = Number(selectedTable.currentTotal);
+                        }
+
                         existingTableCart = {
                             tableId: tableId,
                             tableName: selectedTable?.name || '',
@@ -2193,21 +2209,54 @@
                             grandTotal: grandTotal
                         };
                     } else {
-                        existingTableCart = null;
+                        if (selectedTable && Number(selectedTable.currentTotal) > 0) {
+                            existingTableCart = {
+                                tableId: tableId,
+                                tableName: selectedTable?.name || '',
+                                items: [],
+                                grandTotal: Number(selectedTable.currentTotal)
+                            };
+                        } else {
+                            existingTableCart = null;
+                        }
                     }
                 } catch (err) {
                     console.error('Cloud table cart fetch error:', err);
+                    if (selectedTable && Number(selectedTable.currentTotal) > 0) {
+                        existingTableCart = {
+                            tableId: tableId,
+                            tableName: selectedTable?.name || '',
+                            items: [],
+                            grandTotal: Number(selectedTable.currentTotal)
+                        };
+                    }
                 }
             } else {
                 try {
                     const res = await fetch(`/api/table/${tableId}/cart`);
                     if (res.ok) {
                         existingTableCart = await res.json();
+                    } else if (selectedTable && Number(selectedTable.currentTotal) > 0) {
+                        existingTableCart = {
+                            tableId: tableId,
+                            tableName: selectedTable?.name || '',
+                            items: [],
+                            grandTotal: Number(selectedTable.currentTotal)
+                        };
                     } else {
                         existingTableCart = null;
                     }
                 } catch {
-                    existingTableCart = null;
+                    if (selectedTable && Number(selectedTable.currentTotal) > 0) {
+                        existingTableCart = {
+                            tableId: tableId,
+                            tableName: selectedTable?.name || '',
+                            items: [],
+                            grandTotal: Number(selectedTable.currentTotal)
+                        };
+                    } else {
+                        existingTableCart = null;
+                    }
                 }
             }
             updateTopCartButton();
@@ -2648,9 +2697,15 @@
             const newQty = newItems.reduce((sum, item) => sum + item.quantity, 0);
             const newPrice = newItems.reduce((sum, item) => sum + (item.quantity * item.product.price), 0);
 
-            const existItems = (existingTableCart && existingTableCart.items) ? existingTableCart.items : [];
-            const existQty = existItems.reduce((sum, item) => sum + item.quantity, 0);
-            const existPrice = existingTableCart ? (existingTableCart.grandTotal || 0) : 0;
+            const existItems = (existingTableCart && existingTableCart.items && existingTableCart.items.length > 0)
+                ? existingTableCart.items
+                : [];
+            const existQty = existItems.length > 0
+                ? existItems.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0)
+                : (selectedTable && Number(selectedTable.currentTotal) > 0 ? (selectedTable.itemsCount || 1) : 0);
+            const existPrice = (existingTableCart && Number(existingTableCart.grandTotal) > 0)
+                ? Number(existingTableCart.grandTotal)
+                : (selectedTable ? (Number(selectedTable.currentTotal) || 0) : 0);
 
             const totalQty = newQty + existQty;
             const totalPrice = newPrice + existPrice;
@@ -2707,7 +2762,9 @@
             const newTotal = newItems.reduce((sum, i) => sum + (i.quantity * i.product.price), 0);
 
             const existItems = (existingTableCart && existingTableCart.items) ? existingTableCart.items : [];
-            const existTotal = existingTableCart ? (existingTableCart.grandTotal || 0) : 0;
+            const existTotal = (existingTableCart && Number(existingTableCart.grandTotal) > 0)
+                ? Number(existingTableCart.grandTotal)
+                : (Number(selectedTable?.currentTotal) || 0);
             const grandTotal = existTotal + newTotal;
 
             document.getElementById('cartSheetTitle').textContent = `${selectedTable?.name || 'Masa'} — Səbət & Hesab`;
@@ -2819,6 +2876,30 @@
                     </div>
                 `;
                 body.appendChild(existSection);
+            } else if (existTotal > 0) {
+                const existSection = document.createElement('div');
+                existSection.className = 'cart-section-box kitchen-orders-box';
+                existSection.innerHTML = `
+                    <div class="cart-section-header">
+                        <div class="cart-section-title gold">
+                            <span>🔒 Cari Masa Hesabı</span>
+                            <span class="section-count-badge gold">1</span>
+                        </div>
+                        <span class="badge-kitchen-pill ready">Aktiv</span>
+                    </div>
+                    <div class="sent-items-list">
+                        <div class="sent-item-row is-ready">
+                            <div class="sent-item-info">
+                                <div class="sent-item-title">Kassa / Sistem Qeydiyyatı</div>
+                                <div class="sent-item-sub"><span>Kompüterdə qeydə alınmış masa hesabı</span></div>
+                            </div>
+                            <div class="sent-item-right">
+                                <div class="sent-item-amount">${formatCurrency(existTotal)}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                body.appendChild(existSection);
             }
 
             // BÖLMƏ 3: SUMMARY BOX
@@ -2832,7 +2913,7 @@
                 </div>` : ''}
                 ${existTotal > 0 ? `
                 <div class="summary-line">
-                    <span>Mətbəxdəki Əvvəlki Sifarişlər:</span>
+                    <span>Mətbəxdəki / Əvvəlki Sifarişlər:</span>
                     <span style="color: #fff; font-weight: 600;">${formatCurrency(existTotal)}</span>
                 </div>` : ''}
                 <div class="summary-line grand">
