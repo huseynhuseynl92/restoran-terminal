@@ -1971,8 +1971,11 @@
         async function loadProducts() {
             try {
                 if (sb) {
-                    const { data, error } = await sb.from('products').select('*');
-                    if (data && data.length > 0) {
+                    if (!allCategories || allCategories.length === 0) {
+                        await loadCategories();
+                    }
+                    const { data, error } = await sb.from('products').select('*').order('name');
+                    if (!error && Array.isArray(data)) {
                         const catMap = Object.fromEntries((allCategories || []).map(c => [c.id, c.name]));
                         allProducts = data.map(p => ({
                             id: p.id,
@@ -2111,17 +2114,28 @@
                             loadTables();
                             if (selectedTable) refreshTableCart(selectedTable.id);
                         })
+                        .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
+                            loadProducts();
+                        })
+                        .on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, () => {
+                            loadCategories().then(() => loadProducts());
+                        })
                         .subscribe();
                 } catch (e) {
                     console.error('Realtime subscription error', e);
                 }
             }
 
+            let pollCycle = 0;
             setInterval(async () => {
                 try {
                     await loadTables();
                     if (selectedTable) {
                         await refreshTableCart(selectedTable.id);
+                    }
+                    pollCycle++;
+                    if (pollCycle % 3 === 0) {
+                        await loadProducts();
                     }
                 } catch (e) { }
             }, 3000);
@@ -2457,6 +2471,7 @@
             renderProducts();
             updateBottomCartBar();
             updateTopCartButton();
+            loadProducts();
         }
 
         function showTablesView() {
