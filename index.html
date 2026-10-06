@@ -253,8 +253,9 @@
         }
 
         .table-card.bill-requested {
-            border-color: #0369a1;
-            background: linear-gradient(180deg, #131b2e 0%, #0d1e2e 100%);
+            border-color: #38bdf8 !important;
+            background: linear-gradient(180deg, #131b2e 0%, #0d2238 100%) !important;
+            box-shadow: 0 0 14px rgba(56, 189, 248, 0.25);
         }
 
         .table-card.has-res {
@@ -316,9 +317,10 @@
         }
 
         .tag-bill {
-            background: rgba(56, 189, 248, 0.15);
-            color: var(--sky);
-            border: 1px solid rgba(56, 189, 248, 0.3);
+            background: rgba(56, 189, 248, 0.18) !important;
+            color: #38bdf8 !important;
+            border: 1px solid rgba(56, 189, 248, 0.4) !important;
+            font-weight: 800;
         }
 
         .table-bottom {
@@ -2082,12 +2084,13 @@
                         } catch { }
 
                         allTables = regularTables.map(t => {
-                            const isBusy = (t.status === 'Occupied' || t.status === 'Billed' || t.status === 'BillRequested') && Number(t.current_total) > 0;
+                            const isBilled = t.status === 'Billed' || t.status === 'BillRequested' || t.status === 2 || String(t.status).toLowerCase() === 'billed' || String(t.status).toLowerCase() === 'billrequested';
+                            const isBusy = isBilled || t.status === 'Occupied' || Number(t.current_total) > 0;
                             return {
                                 id: t.id,
                                 name: t.name,
                                 area: t.area || 'Əsas Zal',
-                                status: isBusy ? (t.status || 'Occupied') : 'Empty',
+                                status: isBilled ? 'BillRequested' : (isBusy ? 'Occupied' : 'Empty'),
                                 currentTotal: isBusy ? (Number(t.current_total) || 0) : 0,
                                 openedAt: isBusy ? (t.opened_at || null) : null,
                                 itemsCount: isBusy ? ((tableStats[t.id] && tableStats[t.id].totalItems) || 0) : 0,
@@ -2462,14 +2465,16 @@
                 let tagClass = 'tag-empty';
                 let tagText = 'Boş';
 
-                if (table.status === 1 || table.status === 'Occupied') {
+                const isBilled = table.status === 2 || table.status === 'BillRequested' || table.status === 'Billed' || String(table.status).toLowerCase() === 'billed' || String(table.status).toLowerCase() === 'billrequested';
+
+                if (isBilled) {
+                    statusClass = 'bill-requested';
+                    tagClass = 'tag-bill';
+                    tagText = 'Çek Verilib';
+                } else if (table.status === 1 || table.status === 'Occupied' || Number(table.currentTotal) > 0) {
                     statusClass = 'occupied';
                     tagClass = 'tag-occupied';
                     tagText = 'Məşğul';
-                } else if (table.status === 2 || table.status === 'BillRequested') {
-                    statusClass = 'bill-requested';
-                    tagClass = 'tag-bill';
-                    tagText = 'Hesab';
                 }
 
                 if (table.hasActiveReservation) {
@@ -2805,7 +2810,9 @@
                 : (Number(selectedTable?.currentTotal) || 0);
             const grandTotal = existTotal + newTotal;
 
-            document.getElementById('cartSheetTitle').textContent = `${selectedTable?.name || 'Masa'} — Səbət & Hesab`;
+            const isBilled = selectedTable && (selectedTable.status === 2 || selectedTable.status === 'BillRequested' || selectedTable.status === 'Billed' || String(selectedTable.status).toLowerCase() === 'billed' || String(selectedTable.status).toLowerCase() === 'billrequested');
+            const billedBadge = isBilled ? ' <span style="background:rgba(56,189,248,0.2); color:#38bdf8; border:1px solid rgba(56,189,248,0.4); padding:2px 8px; border-radius:8px; font-size:11px; font-weight:800; margin-left:6px;">🧾 ÇEK VERİLİB</span>' : '';
+            document.getElementById('cartSheetTitle').innerHTML = `${escapeHtml(selectedTable?.name || 'Masa')} — Səbət & Hesab${billedBadge}`;
             document.getElementById('cartSheetSubtitle').textContent = `Zal: ${selectedTable?.area || ''} • Ofisiant: ${currentWaiter?.fullName || 'Təyin edilməyib'}`;
 
             // BÖLMƏ 1: YENİ SİFARİŞLƏR (MƏTBƏXƏ GÖNDƏRİLMƏYİB - OFİSİANT REDAKTƏ EDƏ BİLƏR)
@@ -2989,12 +2996,19 @@
                     footer.appendChild(addDishBtn);
                 }
 
-                const isOccupiedOrBilled = (selectedTable && (selectedTable.status === 1 || selectedTable.status === 'Occupied' || selectedTable.status === 2 || selectedTable.status === 'BillRequested')) || existItems.length > 0;
+                const isBilled = selectedTable && (selectedTable.status === 2 || selectedTable.status === 'BillRequested' || selectedTable.status === 'Billed' || String(selectedTable.status).toLowerCase() === 'billed' || String(selectedTable.status).toLowerCase() === 'billrequested');
+                const isOccupiedOrBilled = isBilled || (selectedTable && (selectedTable.status === 1 || selectedTable.status === 'Occupied')) || existItems.length > 0;
                 if (isOccupiedOrBilled) {
                     const billBtn = document.createElement('button');
                     billBtn.className = 'btn-request-bill';
                     billBtn.onclick = requestTableBill;
-                    billBtn.innerHTML = `<span>🧾 Hesab Tələb Et (Pre-bill)</span>`;
+                    if (isBilled) {
+                        billBtn.style.background = 'linear-gradient(135deg, #0369a1, #0284c7)';
+                        billBtn.style.boxShadow = '0 4px 14px rgba(56, 189, 248, 0.4)';
+                        billBtn.innerHTML = `<span>🧾 Çek Verilib (Yenidən Çap Et)</span>`;
+                    } else {
+                        billBtn.innerHTML = `<span>🧾 Hesab Tələb Et (Pre-bill)</span>`;
+                    }
                     footer.appendChild(billBtn);
                 }
             }
